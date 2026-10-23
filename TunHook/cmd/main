@@ -1,0 +1,204 @@
+#!/bin/bash
+# TunHook 内网穿透客户端 - 生命周期管理脚本
+# 用法: main {start|stop|status}
+
+set -e
+trap 'echo "错误: cmd/main 执行失败 (行 $LINENO)" > "$TRIM_TEMP_LOGFILE"' ERR
+
+APP_BIN="$TRIM_APPDEST/tunhook"
+PID_FILE="$TRIM_PKGTMP/app.pid"
+SOCKET_PATH="$TRIM_APPDEST/tunhook.sock"
+
+# 数据目录规划：
+#   @appdata/TunHook（TRIM_PKGVAR）      → 运行数据（数据库/缓存/桌面图标工程等，升级保留）
+#   @appconf/TunHook（TRIM_PKGETC）      → 配置文件（config.yaml / frpc.json / frpc.toml，升级保留）
+#   @appshare/tunhook/log（data-share）  → 日志文件（tunhook-*.log / frpc.log，可重建）
+#
+# 目录推导：优先 TRIM_PKGVAR/TRIM_PKGETC（平台注入）；fnOS 下缺失时按标准布局推导
+# /vol{n}/@appdata/TunHook 与 /vol{n}/@appconf/TunHook，绝不回退到应用目录
+# （@appcenter/TunHook 会被升级替换，数据/配置落在这里会被重置）。
+# 与 src/cli/root.go fnOSPathDerive / cmd/install_callback _derive_persist_dir 保持一致，
+# 避免 shell 脚本和 Go 程序算出不同的持久目录。
+derive_dir() {
+    local var_name="$1"   # 优先使用的环境变量名（TRIM_PKGVAR / TRIM_PKGETC）
+    local sub="$2"        # @appdata / @appconf
+    local v
+    v="$(eval "printf '%s' \"\$$var_name\"")"
+    if [ -n "$v" ]; then
+        printf '%s' "$v"
+        return 0
+    fi
+    if [ -n "$TRIM_APPDEST_VOL" ]; then
+        printf '%s/%s/TunHook' "$TRIM_APPDEST_VOL" "$sub"
+        return 0
+    fi
+    case "$TRIM_APPDEST" in
+        */@appcenter/*)
+            printf '%s/%s/TunHook' "${TRIM_APPDEST%/@appcenter/*}" "$sub"
+            return 0 ;;
+    esac
+    # 从 TRIM_APPDEST 提取卷根（首个路径段），与 _derive_persist_dir 保持一致
+    if [ -n "$TRIM_APPDEST" ]; then
+        local vol
+        vol="$(printf '%s' "$TRIM_APPDEST" | cut -d/ -f2)"
+        [ -n "$vol" ] && printf '/%s/%s/TunHook' "$vol" "$sub" && return 0
+    fi
+    printf '%s' "$TRIM_APPDEST"
+}
+DATA_BASE="$(derive_dir TRIM_PKGVAR @appdata)"
+CONFIG_BASE="$(derive_dir TRIM_PKGETC @appconf)"
+CONFIG_FILE="$CONFIG_BASE/config.yaml"
+
+# 共享日志目录：首个 data-share 声明（tunhook/log）即 @appshare/tunhook/log
+IFS=':' read -ra SHARE_PATHS <<< "$TRIM_DATA_SHARE_PATHS"
+SHARE_LOG_DIR="${SHARE_PATHS[0]:-}"
+if [ -z "$SHARE_LOG_DIR" ]; then
+    SHARE_LOG_DIR="$DATA_BASE/log"
+fi
+
+# 是否真正可用：PID 存活 且 网关 socket 文件存在
+is_running() {
+    [ -f "$PID_FILE" ] || return 1
+    local PID
+    PID=$(cat "$PID_FILE" 2>/dev/null) || return 1
+    [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null && [ -S "$SOCKET_PATH" ]
+}
+
+# 清理失效旧进程：进程还活着但 socket 已不存在（残留/被抢占的异常状态）
+cleanup_stale() {
+    if [ -f "$PID_FILE" ]; then
+        local OLD_PID
+        OLD_PID=$(cat "$PID_FILE" 2>/dev/null)
+        if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null && [ ! -S "$SOCKET_PATH" ]; then
+            kill "$OLD_PID" 2>/dev/null || true
+            for i in $(seq 1 10); do
+                kill -0 "$OLD_PID" 2>/dev/null || break
+                sleep 0.1
+            done
+            kill -0 "$OLD_PID" 2>/dev/null && kill -9 "$OLD_PID" 2>/dev/null || true
+        fi
+    fi
+    rm -f "$PID_FILE"
+}
+
+start_app() {
+    # 已在运行则跳过，防止重复启动导致 socket 被抢占/残留
+    if is_running; then
+        echo "TunHook 内网穿透客户端已在运行，跳过启动"
+        exit 0
+    fi
+
+    cleanup_stale
+
+    # 确保数据目录与各模块专属子目录存在（运行数据按模块 db/frp/geoloc/icons/desk-apps/rules；
+    # 配置目录 @appconf；日志目录 @appshare/tunhook/log）
+    mkdir -p "$DATA_BASE"/{db,frp,geoloc,icons,desk-apps,rules} \
+        "$CONFIG_BASE" \
+        "$SHARE_LOG_DIR"
+
+    # 复制默认配置文件（如果不存在；安装包内模板位于 target/config.yaml）
+    if [ ! -f "$CONFIG_FILE" ]; then
+        for tpl in "$TRIM_APPDEST/config.yaml" "$TRIM_APPDEST/app/config.yaml"; do
+            if [ -f "$tpl" ]; then
+                cp "$tpl" "$CONFIG_FILE"
+                break
+            fi
+        done
+    fi
+
+    # 检查二进制文件是否存在
+    if [ ! -f "$APP_BIN" ]; then
+        echo "错误: 应用二进制文件不存在: $APP_BIN" > "$TRIM_TEMP_LOGFILE"
+        exit 1
+    fi
+
+    # 确保可执行权限
+    chmod +x "$APP_BIN"
+
+    # 清理残留的 socket 文件（避免旧文件导致网关连接失败）
+    rm -f "$SOCKET_PATH"
+
+    # 后台启动 Web 管理界面（传递 fnOS 环境变量给 Go 程序）
+    cd "$DATA_BASE"
+    TRIM_APPDEST="$TRIM_APPDEST" \
+    TRIM_PKGVAR="$TRIM_PKGVAR" \
+    TRIM_PKGETC="$TRIM_PKGETC" \
+    TUNHOOK_DATA_DIR="$DATA_BASE" \
+    TUNHOOK_CONFIG_DIR="$CONFIG_BASE" \
+    TUNHOOK_SHARE_LOG="$SHARE_LOG_DIR" \
+    nohup "$APP_BIN" web \
+        --config "$CONFIG_FILE" \
+        --socket "$SOCKET_PATH" \
+        --gateway-prefix "/app/TunHook" \
+        >> "$SHARE_LOG_DIR/app.log" 2>&1 &
+    echo $! > "$PID_FILE"
+
+    # 等待网关 socket 就绪（最多 10 秒），避免启动后立刻访问时连接被拒
+    for i in $(seq 1 20); do
+        if [ -S "$SOCKET_PATH" ]; then
+            break
+        fi
+        if ! kill -0 "$(cat "$PID_FILE" 2>/dev/null)" 2>/dev/null; then
+            echo "错误: 应用启动失败，请查看日志: $SHARE_LOG_DIR/app.log" > "$TRIM_TEMP_LOGFILE"
+            exit 1
+        fi
+        sleep 0.5
+    done
+
+    if [ ! -S "$SOCKET_PATH" ]; then
+        echo "错误: 网关 socket 未创建: $SOCKET_PATH，请查看日志: $SHARE_LOG_DIR/app.log" > "$TRIM_TEMP_LOGFILE"
+        exit 1
+    fi
+
+    echo "TunHook 内网穿透客户端已启动，PID: $(cat $PID_FILE)"
+    exit 0
+}
+
+stop_app() {
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE")
+        if kill -0 "$PID" 2>/dev/null; then
+            kill "$PID"
+            # 等待进程退出
+            for i in $(seq 1 30); do
+                if ! kill -0 "$PID" 2>/dev/null; then
+                    break
+                fi
+                sleep 0.1
+            done
+            # 如果还没退出，强制终止
+            if kill -0 "$PID" 2>/dev/null; then
+                kill -9 "$PID" 2>/dev/null || true
+            fi
+        fi
+        rm -f "$PID_FILE"
+    fi
+    # 清理可能残留的进程（精确匹配应用二进制，避免误杀其他进程）
+    pkill -f "^$APP_BIN web" 2>/dev/null || true
+    # 清理残留的 socket 文件
+    rm -f "$SOCKET_PATH"
+    exit 0
+}
+
+status_app() {
+    if is_running; then
+        exit 0
+    fi
+    exit 3
+}
+
+case "$1" in
+    start)
+        start_app
+        ;;
+    stop)
+        stop_app
+        ;;
+    status)
+        status_app
+        ;;
+    *)
+        echo "用法: $0 {start|stop|status}"
+        exit 1
+        ;;
+esac

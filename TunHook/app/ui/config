@@ -1,0 +1,15 @@
+{
+    ".url": {
+        "TunHook.main": {
+            "title": "${entry.title}",
+            "desc": "${entry.desc}",
+            "icon": "images/icon-{0}.png",
+            "type": "iframe",
+            "protocol": "http",
+            "url": "/app/TunHook",
+            "allUsers": false,
+            "gatewaySocket": "tunhook.sock",
+            "gatewayPrefix": "/app/TunHook"
+        }
+    }
+}

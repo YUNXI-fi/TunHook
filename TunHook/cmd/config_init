@@ -1,0 +1,15 @@
+#!/bin/bash
+# TunHook 内网穿透客户端 - 配置预处理脚本
+# 在应用重启前执行
+
+set -e
+trap 'echo "错误: config_init 执行失败 (行 $LINENO)" > "$TRIM_TEMP_LOGFILE"' ERR
+
+echo "TunHook 内网穿透客户端 - 正在应用配置更新..."
+
+# 停止应用（精确匹配进程名，避免误杀命令行里含 tunhook 字样的无关进程；
+# 避免配置变更期间进程持有旧状态）
+pkill -x tunhook 2>/dev/null || true
+
+echo "TunHook 内网穿透客户端 - 配置更新完成，应用即将重启"
+exit 0

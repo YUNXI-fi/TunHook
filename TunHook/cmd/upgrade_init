@@ -1,0 +1,21 @@
+#!/bin/bash
+# TunHook 内网穿透客户端 - 升级预处理脚本
+# 在应用新包替换 target/ 之前执行：把旧版本可能存放运行数据/配置的位置并入
+# @appdata/TunHook（升级保留）与 @appconf/TunHook（配置目录），
+# 避免升级替换应用目录 / 重建共享目录（不保证保留）导致旧数据丢失。
+
+set -e
+trap 'echo "错误: upgrade_init 执行失败 (行 $LINENO)" > "$TRIM_TEMP_LOGFILE"' ERR
+
+echo "TunHook 内网穿透客户端 - 正在准备升级..."
+
+# 停止应用（精确匹配进程名，避免误杀命令行里含 tunhook 字样的无关进程）
+pkill -x tunhook 2>/dev/null || true
+
+# 旧数据全位置迁移（与安装共用同一套逻辑）
+# shellcheck source=/dev/null
+source "$(dirname "$0")/migrate_old_data.sh"
+migrate_old_data
+
+echo "TunHook 内网穿透客户端 - 升级准备完成"
+exit 0

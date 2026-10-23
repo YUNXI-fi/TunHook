@@ -1,0 +1,9 @@
+#!/bin/bash
+# TunHook 内网穿透客户端 - 配置后处理脚本
+
+echo "TunHook 内网穿透客户端 - 配置更新已完成"
+
+# 所有处理已在 config_init 中完成（应用重启前执行）
+# 此处仅做日志记录
+
+exit 0

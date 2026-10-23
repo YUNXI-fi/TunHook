@@ -1,0 +1,62 @@
+#!/bin/bash
+# TunHook 内网穿透客户端 - 安装后处理脚本
+# 在应用解压完成后执行
+
+echo "TunHook 内网穿透客户端 - 正在完成安装..."
+
+# 确保二进制文件可执行
+BIN="$TRIM_APPDEST/tunhook"
+if [ -f "$BIN" ]; then
+    chmod +x "$BIN"
+fi
+
+# 目录推导：优先平台注入的 TRIM_PKGVAR(数据)/TRIM_PKGETC(配置)；fnOS 下缺失时按
+# 标准布局推导 /vol{n}/@appdata/TunHook 与 /vol{n}/@appconf/TunHook，绝不回退到
+# 应用目录（@appcenter/TunHook，升级会被替换导致数据/配置重置）。
+# 推导顺序与 src/cli/root.go fnOSPathDerive 完全一致：
+#   1. TRIM_APPDEST_VOL + sub + appname（平台注入卷根）
+#   2. TRIM_APPDEST 含 /@appcenter/ → marker 替换
+#   3. TRIM_APPDEST 提取首个路径段作为卷根
+_derive_persist_dir() {
+    local var_name="$1" sub="$2" v
+    v="$(eval "printf '%s' \"\$$var_name\"")"
+    if [ -n "$v" ]; then
+        printf '%s' "$v"
+        return 0
+    fi
+    if [ -n "$TRIM_APPDEST_VOL" ]; then
+        printf '%s/%s/TunHook' "$TRIM_APPDEST_VOL" "$sub"
+        return 0
+    fi
+    case "$TRIM_APPDEST" in
+        */@appcenter/*)
+            printf '%s/%s/TunHook' "${TRIM_APPDEST%/@appcenter/*}" "$sub"
+            return 0 ;;
+    esac
+    if [ -n "$TRIM_APPDEST" ]; then
+        local vol
+        vol="$(printf '%s' "$TRIM_APPDEST" | cut -d'/' -f2)"
+        [ -n "$vol" ] && printf '/%s/%s/TunHook' "$vol" "$sub" && return 0
+    fi
+    printf '%s' "$TRIM_APPDEST"
+}
+
+# 运行数据目录：TRIM_PKGVAR（/vol1/@appdata/TunHook，升级保留）
+DATA_DIR="$(_derive_persist_dir TRIM_PKGVAR @appdata)"
+mkdir -p "$DATA_DIR"
+
+# 配置目录：TRIM_PKGETC（/vol1/@appconf/TunHook，升级保留）
+ETC_DIR="$(_derive_persist_dir TRIM_PKGETC @appconf)"
+mkdir -p "$ETC_DIR"
+if [ ! -f "$ETC_DIR/config.yaml" ]; then
+    # 安装包内模板位于 target/config.yaml（app/ 内容解压到 target 根目录）
+    for tpl in "$TRIM_APPDEST/config.yaml" "$TRIM_APPDEST/app/config.yaml"; do
+        if [ -f "$tpl" ]; then
+            cp "$tpl" "$ETC_DIR/config.yaml"
+            break
+        fi
+    done
+fi
+
+echo "TunHook 内网穿透客户端 - 安装完成"
+exit 0

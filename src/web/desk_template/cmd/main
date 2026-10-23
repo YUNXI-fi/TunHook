@@ -1,0 +1,22 @@
+#!/bin/bash
+# TunHook 桌面快捷入口 - 生命周期脚本（静态应用，无后台进程）
+# 用法: main {start|stop|status}
+
+set -e
+
+case "$1" in
+    start)
+        exit 0
+        ;;
+    stop)
+        exit 0
+        ;;
+    status)
+        # 静态应用，视为运行中
+        exit 0
+        ;;
+    *)
+        echo "用法: $0 {start|stop|status}"
+        exit 1
+        ;;
+esac

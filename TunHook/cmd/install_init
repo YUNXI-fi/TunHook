@@ -1,0 +1,21 @@
+#!/bin/bash
+# TunHook 内网穿透客户端 - 安装预处理脚本
+# 在应用包文件应用前执行：把旧版本可能存放运行数据/配置的位置并入
+# @appdata/TunHook 与 @appconf/TunHook，避免覆盖安装（target 被新包替换）时旧数据丢失。
+
+set -e
+trap 'echo "错误: install_init 执行失败 (行 $LINENO)" > "$TRIM_TEMP_LOGFILE"' ERR
+
+echo "TunHook 内网穿透客户端 - 正在准备安装..."
+
+# 停止应用（精确匹配进程名，避免误杀命令行里含 tunhook 字样的无关进程；
+# 覆盖安装时旧进程可能仍在运行）
+pkill -x tunhook 2>/dev/null || true
+
+# 旧数据全位置迁移（与升级共用同一套逻辑）
+# shellcheck source=/dev/null
+source "$(dirname "$0")/migrate_old_data.sh"
+migrate_old_data
+
+echo "TunHook 内网穿透客户端 - 安装准备完成"
+exit 0

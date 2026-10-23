@@ -1,0 +1,13 @@
+{
+    ".url": {
+        "TunHook-__NAME__.main": {
+            "title": "__TITLE__",
+            "desc": "TunHook 转发规则 __NAME__",
+            "icon": "images/icon-{0}.png",
+            "type": "__TYPE__",
+            "protocol": "http",
+            "url": "/app/TunHook/proxy/__NAME__",
+            "allUsers": __ALLUSERS__
+        }
+    }
+}

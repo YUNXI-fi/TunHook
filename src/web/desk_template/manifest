@@ -1,0 +1,21 @@
+appname=TunHook-__NAME__
+version=0.1.0
+display_name=__TITLE__
+desc=TunHook 转发规则桌面快捷入口：在 fnOS 桌面直接打开统一网关转发规则 __NAME__，无需进入管理界面即可访问服务
+platform=all
+source=thirdparty
+
+maintainer=YUNXI
+maintainer_url=https://github.com/YUNXI-fi/TunHook
+distributor=TunHook
+distributor_url=https://github.com/YUNXI-fi/TunHook
+
+os_min_version=1.1.3100
+os_max_version=9.9.9
+ctl_stop=true
+install_type=
+
+desktop_uidir=ui
+desktop_applaunchname=TunHook-__NAME__.main
+
+disable_authorization_path=false

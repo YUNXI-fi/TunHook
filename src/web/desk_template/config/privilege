@@ -1,0 +1,5 @@
+{
+    "defaults": { "run-as": "package" },
+    "username": "tunhook-__NAME_LOWER__",
+    "groupname": "tunhook-__NAME_LOWER__"
+}

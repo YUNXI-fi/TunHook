@@ -1,0 +1,81 @@
+#!/bin/bash
+# TunHook 内网穿透客户端 - 卸载后处理脚本
+#
+# 语义：卸载向导选择「保留数据」时，@appdata（数据库/运行数据）、
+# @appconf（配置文件）、@appshare（日志）全部保留，不做任何删除；
+# 选择「不保留数据」时才完整清理三类持久目录。
+# 不再采用「备份→删除→恢复」：系统在卸载时可能已介入目录清理，
+# 备份遗漏（如日志目录）会导致数据丢失。
+
+echo "TunHook 内网穿透客户端 - 正在完成卸载..."
+
+# 目录推导：优先平台注入的 TRIM_PKGVAR(数据)/TRIM_PKGETC(配置)；fnOS 下缺失时按
+# 标准布局推导 /vol{n}/@appdata/TunHook 与 /vol{n}/@appconf/TunHook，绝不回退到应用目录。
+_derive_persist_dir() {
+    local var_name="$1" sub="$2" v
+    v="$(eval "printf '%s' \"\$$var_name\"")"
+    if [ -n "$v" ]; then
+        printf '%s' "$v"
+        return 0
+    fi
+    if [ -n "$TRIM_APPDEST_VOL" ]; then
+        printf '%s/%s/TunHook' "$TRIM_APPDEST_VOL" "$sub"
+        return 0
+    fi
+    case "$TRIM_APPDEST" in
+        */@appcenter/*)
+            printf '%s/%s/TunHook' "${TRIM_APPDEST%/@appcenter/*}" "$sub"
+            return 0 ;;
+    esac
+    if [ -n "$TRIM_APPDEST" ]; then
+        local vol
+        vol="$(printf '%s' "$TRIM_APPDEST" | cut -d'/' -f2)"
+        [ -n "$vol" ] && printf '/%s/%s/TunHook' "$vol" "$sub" && return 0
+    fi
+    printf '%s' "$TRIM_APPDEST"
+}
+
+# 检查是否保留数据（来自卸载向导 wizard_data_action）。
+# 默认保留：仅当向导显式选择 delete 时才清理持久目录。
+# 平台某些流程（内部重装、修复等）可能不带向导变量调用本脚本，
+# 变量缺失时按「保留」处理，避免误删用户数据。
+KEEP_DATA=true
+if [ "$wizard_data_action" = "delete" ]; then
+    KEEP_DATA=false
+fi
+
+# 数据目录：TRIM_PKGVAR（/vol1/@appdata/TunHook）
+DATA_DIR="$(_derive_persist_dir TRIM_PKGVAR @appdata)"
+# 配置目录：TRIM_PKGETC（/vol1/@appconf/TunHook）
+ETC_DIR="$(_derive_persist_dir TRIM_PKGETC @appconf)"
+
+# 解析共享目录路径（/vol1/@appshare/tunhook/log）
+IFS=':' read -ra SHARE_PATHS <<< "${TRIM_DATA_SHARE_PATHS:-}"
+
+# 保留数据：持久目录全部保留（数据库/配置/日志），不做任何删除
+if [ "$KEEP_DATA" = "true" ]; then
+    echo "TunHook 内网穿透客户端 - 已保留全部数据、配置与日志"
+    exit 0
+fi
+
+# 不保留数据：完整清理三类持久目录
+rm -rf "$DATA_DIR" 2>/dev/null || true
+
+rm -rf "$ETC_DIR" 2>/dev/null || true
+
+for share_path in "${SHARE_PATHS[@]}"; do
+    if [ -d "$share_path" ]; then
+        rm -rf "${share_path:?}" 2>/dev/null || true
+    fi
+done
+
+# 清理共享根目录（/vol1/@appshare/tunhook）
+if [ ${#SHARE_PATHS[@]} -gt 0 ] && [ -n "${SHARE_PATHS[0]}" ]; then
+    SHARE_ROOT="$(dirname "${SHARE_PATHS[0]}")"
+    if [ -d "$SHARE_ROOT" ]; then
+        rm -rf "$SHARE_ROOT" 2>/dev/null || true
+    fi
+fi
+
+echo "TunHook 内网穿透客户端 - 已清理全部数据、配置与日志"
+exit 0

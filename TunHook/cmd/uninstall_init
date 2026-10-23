@@ -1,0 +1,14 @@
+#!/bin/bash
+# TunHook 内网穿透客户端 - 卸载预处理脚本
+
+set -e
+trap 'echo "错误: uninstall_init 执行失败 (行 $LINENO)" > "$TRIM_TEMP_LOGFILE"' ERR
+
+echo "TunHook 内网穿透客户端 - 正在准备卸载..."
+
+# 停止应用（精确匹配进程名，避免误杀命令行里含 tunhook 字样的无关进程；
+# 系统会处理停止，这里确保进程退出）
+pkill -x tunhook 2>/dev/null || true
+
+echo "TunHook 内网穿透客户端 - 卸载准备完成"
+exit 0

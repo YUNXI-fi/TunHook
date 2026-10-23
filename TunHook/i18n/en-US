@@ -1,0 +1,28 @@
+[common]
+desc="<p>TunHook is a self-hosted port forwarding and reverse tunneling tool.</p><ul><li>Provides TCP / UDP / HTTP / HTTPS port mapping, unified gateway and frpc proxying, covering FRP, MEFrp, LoliaFrp and Cloudflare Tunnel;</li><li>Each tunnel has its own rate limit, connection cap, PROXY protocol v2, upstream TLS, UDP session parameters, logs and IP filtering;</li><li>Built-in TLS certificate issuance and renewal, DNS record management, IP geolocation database, tunnel health checks and webhook notifications;</li><li>Custom error pages, navigation page, full backup and restore, dashboard layout and module toggles, with mobile layouts;</li><li>The ROOT edition adds one-click desktop icon packaging, Docker port scanning, connectivity tests and local direct-connection optimization.</li></ul>"
+changelog="<ol><li>The console now supports Simplified Chinese, Traditional Chinese, English and Japanese, switching instantly without a reload</li><li>The About changelog now has a version index and search with jump, filtering and match highlighting</li><li>Added a Support the developer entry with a tip QR code on the About page; the project homepage now points to tunhook.top and source links point to the GitHub repository</li><li>Added the missing v0.6.6.170 / v0.6.6.171 changelog entries and unified the version at 0.6.6.172</li></ol>"
+
+[entry]
+title="TunHook"
+desc="TunHook tunneling client"
+
+[install]
+stepTitle="Welcome"
+helpText="<b>Enabling the system firewall is recommended</b><br><br>The firewall is the first line of defense for system security and controls which external devices can reach this machine. TunHook exposes your ports to the internet, so enabling the firewall is strongly recommended to strengthen system protection.<br><br><b>How to enable:</b> go to System Settings - Security - Firewall and turn on Enable firewall.<br><br><b>Source IP options:</b><br>• Custom IP/IP range: allow only the specified IP addresses or ranges<br>• All IPv4/IPv6: allow all IPv4 or IPv6 addresses for the matching protocol<br>• Mainland China / Outside mainland China: restrict sources automatically by IP geolocation<br>• All IPs (⚠️ higher risk): no source restriction<br><br><b>Protocol options:</b><br>• Custom TCP/UDP: allow the matching protocol only on the specified ports<br>• All TCP/UDP/ICMP: allow all traffic for the matching protocol<br>• Process listening ports: allow the ports currently listened on by the system<br>• All protocols: filter by IP only and allow all protocol traffic"
+
+[uninstall]
+stepTitle="Confirm uninstall"
+helpText="You are about to uninstall TunHook. Please choose how to handle the application data:"
+label="Data retention"
+option1Label="Keep data (recommended) - can be restored when you reinstall later"
+option2Label="Delete all data - this cannot be undone!"
+requireMessage="Please choose a data retention option"
+warningHelpText="<strong>Warning:</strong> if you choose to delete data, all tunnel configurations and user data will be lost permanently and cannot be recovered."
+
+[upgrade]
+stepTitle="Upgrade notes"
+helpText="<b>Before upgrading:</b><br><br>1. <b>No data loss</b>: forwarding tunnels, frpc proxies, webhook channels and system settings are stored in the application data directory (@appdata) and configuration directory (@appconf), and are preserved during platform upgrades or overwrite installs.<br>2. <b>This version fixes old data being overwritten after an upgrade</b>: data kept in the shared directory, the application directory or the legacy @appdata/data directory is merged into the application data and configuration directories automatically during upgrade.<br>3. Choose Keep data when uninstalling, so everything can be restored after reinstalling.<br><br><b>About this version:</b> rebuilt IP filtering (allow/deny list modes, LAN bypass, adding regions from the IP database, lockout protection), automatic replacement of local addresses with this machine's IPv4 address, and an improved allow/deny list UI."
+
+[config]
+stepTitle="App configuration"
+helpText="All TunHook settings are managed in the admin console; nothing needs to be filled in here.<br><br><b>How to open:</b> click the TunHook desktop icon, or visit <b>/app/TunHook</b> (fnOS unified gateway).<br><br><b>Configurable in the console:</b><br>• frp servers and frpc proxies (tunnels, custom domains, access authentication)<br>• Forwarding tunnels (TCP/UDP/HTTP/HTTPS port mapping, unified gateway)<br>• Webhook notifications and receivers<br>• IP filtering, IP geolocation, TLS certificates, navigation page (/hook)<br><br>Changes take effect automatically after saving. Clicking OK only restarts the app to apply the current configuration."

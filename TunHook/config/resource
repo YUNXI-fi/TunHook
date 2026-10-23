@@ -1,0 +1,12 @@
+{
+    "data-share": {
+        "shares": [
+            {
+                "name": "tunhook/log",
+                "permission": {
+                    "rw": ["tunhook_user"]
+                }
+            }
+        ]
+    }
+}

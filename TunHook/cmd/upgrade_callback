@@ -1,0 +1,13 @@
+#!/bin/bash
+# TunHook 内网穿透客户端 - 升级后处理脚本
+
+set -e
+trap 'echo "错误: upgrade_callback 执行失败 (行 $LINENO)" > "$TRIM_TEMP_LOGFILE"' ERR
+
+echo "TunHook 内网穿透客户端 - 正在完成升级..."
+
+# 确保新版二进制文件可执行
+chmod +x "$TRIM_APPDEST/tunhook" 2>/dev/null || true
+
+echo "TunHook 内网穿透客户端 - 升级完成"
+exit 0

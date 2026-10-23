@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TunHook 管理控制台</title>
+  <link rel="icon" id="pageFavicon" type="image/png">
+  <script>
+    // 依据当前访问路径推断飞牛统一网关前缀（如 /app/TunHook），用于图标与 API 请求
+    (function () {
+      var m = window.location.pathname.match(/^(\/app\/[^/]+)/);
+      var base = m ? m[1] : '';
+      if (document.getElementById('pageFavicon')) {
+        document.getElementById('pageFavicon').href = base + '/static/icon.png';
+      }
+    })();
+  </script>
+  <script type="module" src="/src/main.js"></script>
+</head>
+<body>
+  <div id="app"></div>
+</body>
+</html>

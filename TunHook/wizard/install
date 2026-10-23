@@ -1,0 +1,11 @@
+[
+    {
+        "stepTitle": "${install.stepTitle}",
+        "items": [
+            {
+                "type": "tips",
+                "helpText": "${install.helpText}"
+            }
+        ]
+    }
+]

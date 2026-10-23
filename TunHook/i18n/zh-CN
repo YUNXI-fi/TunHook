@@ -1,0 +1,28 @@
+[common]
+desc="<p>TunHook 是一款自托管的端口转发与内网穿透工具。</p><ul><li>提供 TCP / UDP / HTTP / HTTPS 端口映射、统一网关与 frpc 代理，兼容 FRP、MEFrp、LoliaFrp 与 Cloudflare Tunnel；</li><li>每条通道可独立设置限速、连接数、PROXY protocol v2、源端 TLS、UDP 会话参数、日志与 IP 过滤；</li><li>内置 TLS 证书申请续期、域名解析管理、IP 归属地库、通道健康检测与 Webhook 通知；</li><li>支持错误页自定义、导航页、全量备份恢复、仪表盘布局与模块开关，适配移动端；</li><li>ROOT 版支持桌面图标自动打包安装、Docker 端口扫描、连通性测试与本机直连优化。</li></ul>"
+changelog="<ol><li>管理界面支持简体中文 / 繁体中文 / English / 日本語 四语种，切换即时生效</li><li>「关于」页更新日志新增版本目录与搜索，支持跳转、过滤与命中高亮</li><li>「关于」页新增「支持开发者」赞赏码入口；项目主页改为 tunhook.top，开源地址指向 GitHub 仓库</li><li>补齐 v0.6.6.170 / v0.6.6.171 更新日志，版本号统一为 0.6.6.172</li></ol>"
+
+[entry]
+title="TunHook"
+desc="TunHook 内网穿透客户端"
+
+[install]
+stepTitle="欢迎安装"
+helpText="⚠️ <b>系统防火墙功能推荐开启</b><br><br>防火墙是系统网络安全的第一道防线，可有效控制外部设备对本机的访问权限。使用TunHook会将您的端口暴露到外网，强烈建议您开启防火墙，以增强系统的安全防护能力。<br><br><b>开启方式：</b>进入「系统设置 - 安全性 - 防火墙」，找到「启用防火墙」开关并打开即可激活。<br><br><b>来源IP控制选项：</b><br>• 自定义IP/IP段：仅放行指定IP地址或地址段的访问<br>• 全部IPv4/IPv6：放行对应协议的所有IPv4或IPv6地址访问<br>• 中国大陆境内/境外：按IP归属地自动限制访问来源<br>• 全部IP（⚠️ 风险较高）：不限制任何来源地址<br><br><b>通信协议控制选项：</b><br>• 自定义TCP/UDP：仅放行指定端口的对应协议流量<br>• 全部TCP/UDP/ICMP：放行对应协议的所有流量<br>• 进程监听端口：自动放行系统当前监听的端口<br>• 全部协议：仅按IP进行过滤，放行所有协议流量"
+
+[uninstall]
+stepTitle="确认卸载"
+helpText="您即将卸载 TunHook。请选择如何处理应用数据："
+label="数据保留选项"
+option1Label="保留数据（推荐）- 将来重新安装时可恢复"
+option2Label="删除所有数据 - 此操作不可恢复！"
+requireMessage="请选择数据保留选项"
+warningHelpText="<strong>警告：</strong> 选择删除数据后，所有通道配置、用户数据将永久丢失，无法恢复。"
+
+[upgrade]
+stepTitle="升级说明"
+helpText="<b>升级前请知悉：</b><br><br>1. <b>数据不会丢失</b>：转发通道、frpc 代理、Webhook 通道、系统设置等保存在应用数据目录（@appdata）与配置目录（@appconf），平台升级或覆盖安装时都会保留。<br>2. <b>本版本修复了升级后旧数据被覆盖的问题</b>：旧版本数据存放于共享目录 / 应用目录 / 旧版 @appdata/data 时，升级会自动并入应用数据目录与配置目录，不再丢失。<br>3. 卸载时请选择「保留数据」，重装后可恢复。<br><br><b>本版本相关：</b>IP 过滤（拦截功能）重构升级（白名单/黑名单模式、局域网放行、从 IP 地址库按地区加入名单、防误锁校验）、本地地址自动替换为本机 IPv4、黑白名单列表优化等。"
+
+[config]
+stepTitle="应用配置"
+helpText="TunHook 的全部配置均在管理界面完成，无需在此填写。<br><br><b>访问方式：</b>打开桌面 TunHook 图标，或访问 <b>/app/TunHook</b>（飞牛统一网关）。<br><br><b>可在界面中配置：</b><br>• frp 服务器与 frpc 代理（穿透通道、自定义域名、访问认证）<br>• 转发通道（TCP/UDP/HTTP/HTTPS 端口映射、统一网关）<br>• Webhook 通知与接收器<br>• IP 过滤、IP 归属地、TLS 证书、导航页（/hook）<br><br>保存后自动生效。点击「确定」仅重启应用以应用当前配置。"

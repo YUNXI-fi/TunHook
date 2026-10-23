@@ -1,0 +1,22 @@
+# TunHook 配置文件（首次安装/启动时自动生成到 @appconf/TunHook/config.yaml）
+#
+# 说明：
+#   - 各项均有内置默认值，可只保留需要调整的条目；
+#   - Web 管理界面保存的设置存放在应用数据库中，优先生效（yaml < 数据库）；
+#   - 手动修改本文件后重启应用生效。
+
+log:
+  level: info                  # 日志级别：debug / info / warn / error
+  expire_days: 7               # 通道日志保留天数
+  traffic_retention_days: 31   # 流量统计保留天数
+
+forward:
+  # 端口转发规则（也可在 Web 界面配置，保存后以数据库为准）
+  rules: []
+
+tunnel:
+  check_interval: 30           # 通道健康检测间隔（秒）
+
+# ME Frp 幻缘映射访问密钥（也可在 Web 界面填写）
+# mefrp:
+#   token: ""

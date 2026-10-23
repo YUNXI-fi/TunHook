@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" id="siteFavicon">
+  <title>通道导航</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 4px; }
+    :root {
+      --glass: rgba(42, 42, 42, 0.42);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #ffffff;
+      --muted: rgba(255, 255, 255, 0.65);
+      --muted-2: rgba(255, 255, 255, 0.4);
+      --green-soft: #4ade80;
+      --red-soft: #f87171;
+      --shadow: 0 2px 50px rgba(0, 0, 0, 0.5);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: var(--text);
+      background:
+        radial-gradient(1000px 600px at 70% -20%, rgba(75, 158, 95, 0.08), transparent 60%),
+        radial-gradient(800px 500px at 10% 110%, rgba(56, 189, 248, 0.05), transparent 60%),
+        #0e1013;
+      background-attachment: fixed;
+    }
+    .container { flex: 1; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+    /* Logo 行 */
+    .logo-row { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 16vh 0 4px; }
+    .logo-icon { width: 52px; height: 52px; border-radius: 14px; object-fit: cover; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+    .logo-text { font-size: 40px; font-weight: 800; color: #fff; text-shadow: var(--shadow); letter-spacing: 2px; }
+
+    /* 搜索框 */
+    .search-wrap { position: relative; max-width: 755px; margin: 28px auto 0; }
+    .search-box {
+      display: flex; align-items: center; gap: 12px;
+      height: 50px; padding: 0 18px;
+      background: var(--glass);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      transition: box-shadow 0.3s, backdrop-filter 0.3s, border-color 0.3s;
+    }
+    .search-box:focus-within { box-shadow: 0 0 30px rgba(42, 42, 42, 0.5); border-color: rgba(255, 255, 255, 0.25); backdrop-filter: blur(10px); }
+    .search-box .s-icon { font-size: 18px; opacity: 0.75; flex-shrink: 0; cursor: pointer; }
+    .search-box .s-icon img { width: 18px; height: 18px; border-radius: 4px; object-fit: cover; }
+    .search-box input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: #fff; font-size: 16px; height: 100%; }
+    .search-box input::placeholder { color: rgba(255, 255, 255, 0.45); }
+    .search-suggest {
+      position: absolute; top: calc(100% + 10px); left: 0; right: 0; z-index: 120;
+      background: #1c1e24; border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); animation: pop 0.15s ease both;
+    }
+    .s-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; transition: background 0.15s; }
+    .s-item:hover { background: rgba(255, 255, 255, 0.08); }
+    .s-item.active { background: rgba(34, 197, 94, 0.12); }
+    .s-item .s-icon {
+      width: 30px; height: 30px; border-radius: 8px; background: rgba(255, 255, 255, 0.08);
+      display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;
+      color: var(--green-soft); flex-shrink: 0; overflow: hidden;
+    }
+    .s-item .s-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .s-item .s-text { flex: 1; font-size: 13px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .s-item .s-id { font-size: 11px; color: var(--muted-2); }
+
+    /* 分组 */
+    .group { margin-top: 50px; animation: fadeUp 0.35s ease both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    .group-header { display: flex; align-items: baseline; gap: 10px; padding: 0 10px 20px; }
+    .group-header .name { font-size: 20px; font-weight: 800; color: #fff; text-shadow: var(--shadow); }
+    .group-header .count { font-size: 13px; color: var(--muted-2); font-weight: 400; }
+
+    /* 卡片网格 */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px; }
+    .nav-card {
+      display: flex; align-items: center;
+      background: var(--glass); border: 1px solid var(--border); border-radius: 16px;
+      cursor: pointer; overflow: hidden;
+      transition: box-shadow 0.3s, background 0.3s, transform 0.2s, backdrop-filter 0.3s;
+    }
+    .nav-card:hover {
+      box-shadow: 0 0 20px rgba(42, 42, 42, 0.42), 0 0 1px 1px rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      transform: translateY(-2px);
+    }
+    .nav-card.offline { opacity: 0.55; }
+    .nav-card.offline:hover { opacity: 0.8; }
+    .nav-card.hidden-by-search { display: none; }
+    .nav-card.flash { animation: flashRing 1.2s ease; }
+    @keyframes flashRing { 0%, 100% { box-shadow: none; } 20%, 60% { box-shadow: 0 0 0 2px var(--green-soft), 0 0 24px rgba(74, 222, 128, 0.5); } }
+    .card-icon { width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .card-icon img { width: 50px; height: 50px; border-radius: 12px; object-fit: cover; background: rgba(255, 255, 255, 0.06); }
+    .card-icon .def {
+      width: 50px; height: 50px; border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 700; color: rgba(255, 255, 255, 0.85);
+    }
+    .card-info { flex: 1; min-width: 0; padding: 0 14px 0 0; }
+    .card-title { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-title mark { background: rgba(74, 222, 128, 0.35); color: #fff; border-radius: 3px; padding: 0 2px; }
+    .card-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+    .card-meta .id { font-size: 11px; color: var(--muted-2); white-space: nowrap; font-family: Consolas, Menlo, monospace; }
+    /* 状态圆点（颜色表示通道是否已上报公网地址） */
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot.on { background: var(--green-soft); box-shadow: 0 0 6px rgba(34, 197, 94, 0.6); }
+    .dot.off { background: var(--red-soft); box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
+    .dot.warn { background: #fbbf24; box-shadow: 0 0 6px rgba(251, 191, 36, 0.6); }
+
+    /* 加载动画 */
+    .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 90px 0; color: var(--muted); gap: 14px; }
+    .spinner { width: 38px; height: 38px; border: 3px solid rgba(255, 255, 255, 0.12); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 空状态 */
+    .empty { text-align: center; padding: 70px 20px; color: var(--muted); }
+    .empty .big { font-size: 40px; margin-bottom: 12px; }
+
+    /* 页脚 */
+    footer { padding: 20px; text-align: center; color: rgba(255, 255, 255, 0.45); font-size: 13px; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); padding: 11px 22px; border-radius: 10px; color: white; font-size: 14px; z-index: 999; opacity: 0; transition: all 0.3s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.info { background: rgba(148, 163, 184, 0.9); }
+    .toast.error { background: rgba(239, 68, 68, 0.9); }
+
+    .hidden { display: none !important; }
+
+    /* ---- 右上角固定登录入口 ---- */
+    .fixed-tools {
+      position: fixed; top: 16px; right: 16px; z-index: 200;
+      display: flex; align-items: center; gap: 4px;
+      background: var(--glass); border: 1px solid var(--border); border-radius: 8px;
+      padding: 4px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    }
+    .tool-btn {
+      width: 36px; height: 36px; border: none; border-radius: 6px; cursor: pointer;
+      background: transparent; color: #fff; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .tool-btn svg { width: 18px; height: 18px; }
+    .tool-btn:hover { background: rgba(255, 255, 255, 0.12); }
+    .tool-btn svg path { stroke: #d6dde6; fill: none; }
+    .tool-btn:hover svg path { stroke: #fff; }
+    .tool-btn.logged-in svg path { stroke: var(--green-soft); }
+
+    /* ---- 登录弹窗 ---- */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65); z-index: 300; align-items: center; justify-content: center; padding: 20px; }
+    .overlay.show { display: flex; }
+    .modal { background: rgba(27, 29, 35, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 28px; width: 380px; max-width: 100%; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); animation: fadeUp 0.25s ease both; }
+    .modal h3 { margin-bottom: 8px; font-size: 17px; color: #fff; }
+    .modal .desc { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+    .modal .form-group { margin-bottom: 16px; }
+    .modal .form-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .modal input[type="password"] { width: 100%; padding: 10px 14px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; transition: border-color 0.2s; }
+    .modal input[type="text"] { width: 100%; padding: 10px 14px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; transition: border-color 0.2s; }
+    .modal input:focus { outline: none; border-color: rgba(255, 255, 255, 0.35); }
+    .modal .error { color: var(--red-soft); font-size: 13px; margin-top: 10px; min-height: 18px; }
+    .modal .btn-row { display: flex; gap: 8px; margin-top: 8px; justify-content: center; }
+    .modal .form-label-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; }
+    .modal .form-label-row .form-label { font-size: 13px; color: var(--muted); }
+    .setting-toggles { display: flex; flex-direction: column; gap: 10px; margin: 4px 0 16px; }
+    .toggle-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); cursor: pointer; }
+    .toggle-row input { width: 15px; height: 15px; accent-color: var(--green-soft); cursor: pointer; }
+    .btn { padding: 9px 16px; border-radius: 10px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; }
+    .btn-primary { background: rgba(255, 255, 255, 0.14); color: #fff; }
+    .btn-primary:hover { background: rgba(255, 255, 255, 0.24); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.3); }
+    .btn-danger { background: rgba(239, 68, 68, 0.14); color: var(--red-soft); }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.24); }
+
+    /* ---- 壁纸层 ---- */
+    .wallpaper-layer { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+    .wallpaper-bg { position: absolute; inset: -24px; background-size: cover; background-position: center; opacity: 0; transition: opacity 0.7s ease-in-out, filter 0.2s; }
+    .wallpaper-mask { position: absolute; inset: 0; background: #0e1013; transition: opacity 0.2s; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+
+    /* ---- Logo 时钟 ---- */
+    .logo-sep { color: #fff; font-size: 24px; font-weight: 400; margin: 0 12px; opacity: 0.85; text-shadow: var(--shadow); }
+    .clock { text-align: center; }
+    .clock .t { font-family: Consolas, Menlo, monospace; font-size: 28px; font-weight: 600; color: #fff; text-shadow: var(--shadow); line-height: 1; }
+    .clock .d { font-size: 13px; color: var(--muted); text-shadow: var(--shadow); margin-top: 3px; }
+
+    /* ---- 统计条 ---- */
+    .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; max-width: 755px; margin: 18px auto 0; }
+    .stat { background: var(--glass); border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; text-align: center; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: fadeUp 0.35s ease both; }
+    .stat .stat-label { font-size: 12px; color: var(--muted); }
+    .stat .stat-value { font-size: 22px; font-weight: 700; margin-top: 2px; }
+    .stat .stat-value.green { color: var(--green-soft); }
+    .stat .stat-value.blue { color: #38bdf8; }
+
+    /* ---- 导航页设置弹窗（侧边栏分组） ---- */
+    .settings-modal { position: relative; display: flex; width: 780px; max-width: 100%; height: 560px; max-height: 88vh; padding: 0; overflow: hidden; }
+    .settings-close { position: absolute; top: 12px; right: 14px; width: 30px; height: 30px; border: none; border-radius: 8px; background: transparent; color: var(--muted); font-size: 14px; cursor: pointer; z-index: 5; transition: all 0.2s; }
+    .settings-close:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+    .settings-sidebar { width: 150px; flex-shrink: 0; background: rgba(19, 20, 25, 0.5); border-right: 1px solid var(--border); padding: 14px 8px; display: flex; flex-direction: column; gap: 2px; }
+    .settings-brand { font-size: 15px; font-weight: 700; color: #fff; padding: 4px 12px 14px; }
+    .settings-tab { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; background: none; border: none; color: var(--muted); font-size: 13px; text-align: left; cursor: pointer; border-radius: 10px; transition: all 0.2s; }
+    .settings-tab:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+    .settings-tab.active { background: rgba(255, 255, 255, 0.1); color: #fff; }
+    .settings-sidebar-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
+    .settings-sidebar-foot .btn { width: 100%; }
+    .settings-main { flex: 1; min-width: 0; overflow-y: auto; padding: 22px 24px; }
+    .settings-section { display: none; }
+    .settings-section.active { display: block; }
+    .settings-section h3 { font-size: 17px; color: #fff; margin-bottom: 4px; }
+    .settings-section .sec-desc { font-size: 12px; color: var(--muted-2); margin-bottom: 16px; }
+    .auto-hint { font-size: 11px; color: var(--muted-2); text-align: center; margin: 8px 0 4px; }
+    .settings-group { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+    .group-title { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 12px; }
+    .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .setting-row:last-child { margin-bottom: 0; }
+    .s-label { font-size: 13px; color: var(--text); width: 130px; flex-shrink: 0; }
+    .s-label small { display: block; color: var(--muted-2); font-size: 11px; font-weight: 400; margin-top: 2px; }
+    .s-input, .s-select { padding: 7px 10px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 13px; outline: none; transition: border-color 0.2s; }
+    .s-input:focus, .s-select:focus { border-color: rgba(255, 255, 255, 0.35); }
+    .s-input { width: 180px; }
+    .s-input.full { width: 100%; margin-top: 4px; }
+    .s-select { width: 170px; cursor: pointer; }
+    .s-select option { background: #1c1e24; }
+    .s-range { -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; max-width: 170px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.15); outline: none; cursor: pointer; }
+    .s-range::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--green-soft); cursor: pointer; border: none; }
+    .s-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--green-soft); cursor: pointer; border: none; }
+    .range-val { width: 52px; text-align: right; font-size: 12px; color: var(--muted); font-family: Consolas, Menlo, monospace; }
+    .switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .slider { position: absolute; inset: 0; background: rgba(255, 255, 255, 0.12); border-radius: 22px; transition: 0.25s; cursor: pointer; }
+    .switch .slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.25s; }
+    .switch input:checked + .slider { background: var(--green-soft); }
+    .switch input:checked + .slider::before { transform: translateX(18px); }
+    .radio-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .radio-card { display: flex; align-items: center; gap: 6px; padding: 8px 13px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; font-size: 12px; color: var(--muted); transition: all 0.2s; background: rgba(255, 255, 255, 0.03); }
+    .radio-card input { display: none; }
+    .radio-card:hover { color: #fff; border-color: rgba(255, 255, 255, 0.25); }
+    .radio-card:has(input:checked) { color: #fff; border-color: var(--green-soft); background: rgba(34, 197, 94, 0.1); }
+    .wall-input { margin-top: 10px; }
+    .upload-zone { border: 1.5px dashed rgba(255, 255, 255, 0.22); border-radius: 12px; padding: 18px 16px; text-align: center; cursor: pointer; transition: all 0.2s; background: rgba(0, 0, 0, 0.15); }
+    .upload-zone:hover { border-color: var(--green-soft); background: rgba(34, 197, 94, 0.06); }
+    .upload-zone .u-text { font-size: 13px; color: var(--muted); }
+    .engine-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .engine-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: rgba(255, 255, 255, 0.03); }
+    .engine-item.default { border-color: var(--green-soft); background: rgba(34, 197, 94, 0.08); }
+    .engine-item .e-icon { width: 18px; height: 18px; border-radius: 4px; object-fit: cover; flex-shrink: 0; background: rgba(255, 255, 255, 0.06); }
+    .engine-item .e-title { font-size: 13px; color: #fff; flex-shrink: 0; min-width: 70px; }
+    .engine-item .e-url { flex: 1; min-width: 0; font-size: 12px; color: var(--muted-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .engine-item .e-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .engine-item .e-actions .btn { padding: 5px 10px; font-size: 12px; }
+    .engine-add { width: 100%; }
+    .logo-edit { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; justify-content: flex-end; }
+    .logo-preview { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border); flex-shrink: 0; }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .container { padding: 0 14px; }
+      .logo-text { font-size: 28px; }
+      .search-box { height: 46px; }
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+      .card-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+      .settings-modal { flex-direction: column; height: 92dvh; height: 92vh; }
+      .settings-sidebar { width: 100%; flex-direction: row; padding: 8px; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border); }
+      .settings-brand, .settings-sidebar-foot { display: none; }
+      .settings-tab { white-space: nowrap; }
+      .settings-main { padding: 16px; }
+      .tool-btn { width: 44px; height: 44px; }
+      .modal input[type="password"], .modal input[type="text"] { font-size: 16px; }
+      body { -webkit-tap-highlight-color: transparent; }
+    }
+    @media (max-width: 480px) {
+      .logo-row { padding-top: 10vh; gap: 10px; }
+      .logo-text { font-size: 24px; letter-spacing: 1px; }
+      .logo-icon { width: 44px; height: 44px; }
+      .logo-sep { font-size: 18px; margin: 0 6px; }
+      .clock .t { font-size: 22px; }
+      .card-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card-icon { width: 56px; height: 56px; }
+      .stats-bar { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .group { margin-top: 32px; }
+      .group-header { padding: 0 4px 14px; flex-wrap: wrap; }
+      .fixed-tools { top: calc(10px + env(safe-area-inset-top)); right: 10px; }
+      .search-box input { font-size: 16px; }
+      .modal { padding: 20px 16px; }
+      .settings-modal { max-height: 92dvh; }
+      .settings-main { padding: 14px; }
+      .setting-row { flex-direction: column; align-items: stretch; gap: 8px; }
+      .s-label { width: auto; }
+      .s-input, .s-select { width: 100% !important; max-width: none; }
+      .s-range { max-width: none; width: 100%; }
+      .range-val { width: 100%; text-align: right; }
+      .logo-edit { justify-content: flex-start; }
+      .engine-item { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 壁纸层：默认隐藏；有壁纸时由 applyWallpaper 显示 -->
+  <div class="wallpaper-layer hidden" id="wallLayer">
+    <div class="wallpaper-bg" id="wallBg"></div>
+    <div class="wallpaper-mask" id="wallMask"></div>
+  </div>
+
+  <!-- 右上角固定登录入口 -->
+  <div class="fixed-tools">
+    <button class="tool-btn" id="loginBtn" onclick="loginBtnClick()" title="管理登录">
+      <svg width="14" height="14" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44Z" stroke="#333" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 23C26.7614 23 29 20.7614 29 18C29 15.2386 26.7614 13 24 13C21.2386 13 19 15.2386 19 18C19 20.7614 21.2386 23 24 23Z" fill="none" stroke="#333" stroke-width="4" stroke-linejoin="round"/><path d="M10.022 38.332C10.3657 33.1206 14.7016 29 20 29H28C33.2914 29 37.6229 33.1097 37.9767 38.3113" stroke="#333" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+
+  <main class="container">
+    <!-- Logo 行 -->
+    <div class="logo-row" id="logoRow">
+      <img class="logo-icon hidden" id="logoIcon" alt="logo">
+      <span class="logo-text" id="logoText">通道导航</span>
+      <span class="logo-sep hidden" id="logoSep">|</span>
+      <div class="clock hidden" id="clockWrap">
+        <div class="t" id="clockTime">--:--:--</div>
+        <div class="d" id="clockDate">----</div>
+      </div>
+    </div>
+
+    <!-- 搜索框 -->
+    <div class="search-wrap" id="searchWrap">
+      <div class="search-box">
+        <span class="s-icon" id="searchBoxIcon" onclick="toggleEnginePicker(event)" title="切换搜索引擎">🔍</span>
+        <input id="searchInput" placeholder="搜索通道名称 / ID，回车使用所选引擎搜索" autocomplete="off">
+      </div>
+      <div class="search-suggest hidden" id="searchSuggest"></div>
+      <div class="search-suggest hidden" id="enginePicker"></div>
+    </div>
+
+    <!-- 统计条 -->
+    <section class="stats-bar hidden" id="statsBar">
+      <div class="stat"><div class="stat-label">通道总数</div><div class="stat-value" id="statTotal">0</div></div>
+      <div class="stat"><div class="stat-label">在线通道</div><div class="stat-value green" id="statOnline">0</div></div>
+      <div class="stat"><div class="stat-label">转发</div><div class="stat-value blue" id="statForwards">0</div></div>
+      <div class="stat"><div class="stat-label">代理</div><div class="stat-value blue" id="statProxies">0</div></div>
+    </section>
+
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <span>正在加载通道...</span>
+    </div>
+    <div id="content"></div>
+    <div id="emptyState" class="empty hidden"></div>
+  </main>
+
+  <!-- 页脚 -->
+  <footer id="pageFooter">@ 2026 TunHook</footer>
+
+  <!-- 管理登录 -->
+  <div class="overlay" id="loginModal">
+    <div class="modal">
+      <h3>管理登录</h3>
+      <p class="desc">请输入管理密码（默认 TunHook）</p>
+      <div class="form-group">
+        <label for="loginPassword">管理密码</label>
+        <input type="password" id="loginPassword" placeholder="请输入管理密码" autocomplete="current-password">
+      </div>
+      <div class="error" id="loginError"></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="closeLogin()">取消</button>
+        <button class="btn btn-primary" onclick="doLogin()">登录</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导航页设置 -->
+  <div class="overlay" id="settingsModal">
+    <div class="modal settings-modal">
+      <button class="settings-close" onclick="closeSettings()" title="关闭">✕</button>
+      <div class="settings-sidebar">
+        <div class="settings-brand">⚙️ 导航页设置</div>
+        <button class="settings-tab active" data-tab="sec-wall" onclick="switchSettingsTab('sec-wall')">壁纸</button>
+        <button class="settings-tab" data-tab="sec-clock" onclick="switchSettingsTab('sec-clock')">时钟</button>
+        <button class="settings-tab" data-tab="sec-stats" onclick="switchSettingsTab('sec-stats')">统计条</button>
+        <button class="settings-tab" data-tab="sec-search" onclick="switchSettingsTab('sec-search')">搜索引擎</button>
+        <button class="settings-tab" data-tab="sec-layout" onclick="switchSettingsTab('sec-layout')">内容布局</button>
+        <button class="settings-tab" data-tab="sec-web" onclick="switchSettingsTab('sec-web')">网页设置</button>
+        <div class="settings-sidebar-foot">
+          <button class="btn btn-danger" onclick="logout()">退出登录</button>
+        </div>
+      </div>
+      <div class="settings-main">
+        <!-- 时钟 -->
+        <div class="settings-section active" id="sec-clock">
+          <h3>时钟</h3>
+          <p class="sec-desc">在标题右侧显示实时时钟</p>
+          <div class="settings-group">
+            <div class="setting-row">
+              <span class="s-label">显示时钟</span>
+              <label class="switch"><input type="checkbox" id="setClockEnabled"><span class="slider"></span></label>
+            </div>
+            <div class="setting-row">
+              <span class="s-label">时间格式</span>
+              <select class="s-select" id="setClockFormat">
+                <option value="24h">HH:MM:SS（24 小时）</option>
+                <option value="24h-ns">HH:MM（24 小时，无秒）</option>
+                <option value="12h">hh:MM:SS AM/PM（12 小时）</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 壁纸 -->
+        <div class="settings-section" id="sec-wall">
+          <h3>壁纸</h3>
+          <p class="sec-desc">设置导航页背景壁纸与模糊、遮罩效果</p>
+          <div class="settings-group">
+            <div class="setting-row">
+              <span class="s-label">壁纸来源</span>
+              <div class="radio-row">
+                <label class="radio-card"><input type="radio" name="wallSrc" value="api"><span>API 获取</span></label>
+                <label class="radio-card"><input type="radio" name="wallSrc" value="url"><span>图片链接</span></label>
+                <label class="radio-card"><input type="radio" name="wallSrc" value="upload"><span>本地上传</span></label>
+              </div>
+            </div>
+            <div class="wall-input hidden" id="wallApiRow">
+              <input type="text" class="s-input full" id="setWallApi" placeholder="壁纸 API 地址，如 https://api.bimg.cc/random?w=1920&h=1080&mkt=zh-CN">
+            </div>
+            <div class="wall-input hidden" id="wallUrlRow">
+              <input type="text" class="s-input full" id="setWallUrl" placeholder="https://example.com/wallpaper.jpg">
+            </div>
+            <div class="wall-input hidden" id="wallUploadRow">
+              <input type="file" id="setWallFile" accept="image/*" class="hidden">
+              <div class="upload-zone" onclick="document.getElementById('setWallFile').click()">
+                <div class="u-text">点击选择本地壁纸图片（不超过 5MB）</div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <span class="s-label">模糊程度<small>壁纸模糊（像素）</small></span>
+              <input type="range" class="s-range" id="setWallBlur" min="0" max="20" value="5"><span class="range-val" id="wallBlurVal">5</span>
+            </div>
+            <div class="setting-row">
+              <span class="s-label">遮罩透明度<small>0-100%，默认开启</small></span>
+              <input type="range" class="s-range" id="setWallMaskOpacity" min="0" max="100" value="20"><span class="range-val" id="wallMaskVal">20</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 网页设置 -->
+        <div class="settings-section" id="sec-web">
+          <h3>网页设置</h3>
+          <p class="sec-desc">设置导航页 LOGO、顶部标题与页脚文字</p>
+          <div class="settings-group">
+            <div class="setting-row">
+              <span class="s-label">LOGO<small>PNG / JPG / SVG，≤2MB</small></span>
+              <div class="logo-edit">
+                <img id="setLogoPreview" class="logo-preview hidden" alt="LOGO">
+                <input type="file" id="setLogoFile" accept=".png,.jpg,.jpeg,.ico,.svg,image/png,image/jpeg,image/x-icon,image/svg+xml" class="hidden">
+                <button class="btn btn-ghost" onclick="document.getElementById('setLogoFile').click()">上传</button>
+                <button class="btn btn-ghost hidden" id="setLogoRemove" onclick="removeLogo()">移除</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <span class="s-label">网页表头<small>页面顶部标题文字</small></span>
+              <input type="text" class="s-input full" id="setSiteTitle" maxlength="20" placeholder="如：通道导航">
+            </div>
+            <div class="setting-row">
+              <span class="s-label">页脚文字<small>留空显示默认</small></span>
+              <input type="text" class="s-input full" id="setFooterText" maxlength="60" placeholder="@ 2026 TunHook">
+            </div>
+          </div>
+        </div>
+
+        <!-- 内容布局 -->
+        <div class="settings-section" id="sec-layout">
+          <h3>内容布局</h3>
+          <p class="sec-desc">调整内容区域的宽度与四周留白</p>
+          <div class="settings-group">
+            <div class="setting-row">
+              <span class="s-label">内容最大宽度<small>占视口百分比</small></span>
+              <input type="range" class="s-range" id="setContentWidth" min="50" max="100" value="90"><span class="range-val" id="contentWidthVal">90%</span>
+            </div>
+            <div class="setting-row">
+              <span class="s-label">两侧边距<small>像素</small></span>
+              <input type="range" class="s-range" id="setSideMargin" min="0" max="200" value="24"><span class="range-val" id="sideMarginVal">24px</span>
+            </div>
+            <div class="setting-row">
+              <span class="s-label">顶部边距<small>占视口百分比</small></span>
+              <input type="range" class="s-range" id="setTopMargin" min="0" max="50" value="16"><span class="range-val" id="topMarginVal">16%</span>
+            </div>
+            <div class="setting-row">
+              <span class="s-label">底部边距<small>占视口百分比</small></span>
+              <input type="range" class="s-range" id="setBottomMargin" min="0" max="50" value="0"><span class="range-val" id="bottomMarginVal">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 统计条 -->
+        <div class="settings-section" id="sec-stats">
+          <h3>统计条</h3>
+          <p class="sec-desc">顶部统计通道 / 转发 / 代理数量</p>
+          <div class="settings-group">
+            <div class="setting-row">
+              <span class="s-label">显示统计条</span>
+              <label class="switch"><input type="checkbox" id="setShowStats"><span class="slider"></span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 搜索引擎 -->
+        <div class="settings-section" id="sec-search">
+          <h3>搜索引擎</h3>
+          <p class="sec-desc">管理导航页搜索框使用的搜索引擎：可添加、编辑、删除，点击「设为默认」切换默认引擎</p>
+          <div class="settings-group">
+            <div class="engine-list" id="engineList"></div>
+            <button class="btn btn-ghost engine-add" onclick="addSearchEngine()">＋ 添加搜索引擎</button>
+          </div>
+        </div>
+
+        <p class="auto-hint">设置修改后自动保存并实时生效</p>
+        <div class="error" id="settingsError"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 搜索引擎编辑 -->
+  <div class="overlay" id="engineModal">
+    <div class="modal">
+      <h3 id="engineModalTitle">添加搜索引擎</h3>
+      <div class="form-group">
+        <div class="form-label-row"><label class="form-label">标题</label></div>
+        <input type="text" id="engineTitle" maxlength="30" placeholder="如：百度">
+      </div>
+      <div class="form-group">
+        <div class="form-label-row"><label class="form-label">图标链接<small>可选，如站点 favicon</small></label></div>
+        <input type="text" id="engineIcon" placeholder="https://example.com/favicon.ico">
+      </div>
+      <div class="form-group">
+        <div class="form-label-row"><label class="form-label">搜索 URL<small>查询词会自动追加到末尾</small></label></div>
+        <input type="text" id="engineUrl" placeholder="https://example.com/search?q=">
+      </div>
+      <div class="error" id="engineError"></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="closeEngineModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveEngine()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // 统一网关部署时页面路径形如 /app/TunHook/hook，通道访问为 /app/TunHook/{通道id}，
+    // 与页面同源，因此基于当前 origin + 前缀拼接访问地址即可。
+    const API_PREFIX = window.location.pathname.indexOf('/app/') === 0
+      ? window.location.pathname.match(/^\/app\/[^\/]+/)[0]
+      : '';
+    const CHANNEL_BASE = location.origin + API_PREFIX;
+
+    let channelCache = []; // 全量通道缓存（搜索过滤用）
+    let toastTimer = null;
+    // 搜索引擎（回车网页搜索用；服务端配置，可在设置中编辑）
+    let searchEngines = [];
+    let currentEngineId = 'bing';  // 当前生效引擎（本地选择优先）
+    let defaultEngineId = 'bing';  // 服务端默认引擎
+    function defaultEngines() {
+      return [
+        { id: 'bing', title: '必应', url: 'https://www.bing.com/search?q=', icon: '/static/bing.svg' },
+        { id: 'google', title: 'Google', url: 'https://www.google.com/search?q=', icon: '/static/Google.svg' },
+        { id: 'bilibili', title: 'BILIBILI', url: 'https://search.bilibili.com/all?keyword=', icon: '/static/bilibili.svg' },
+        { id: 'douyin', title: '抖音', url: 'https://www.douyin.com/search/', icon: '/static/douyin.svg' }
+      ];
+    }
+    // 当前生效搜索引擎（默认回退第一个）
+    function currentEngine() {
+      return searchEngines.find(e => e.id === currentEngineId) || searchEngines[0] || null;
+    }
+    // 本地搜索引擎图标：优先用内嵌 data-URI（CSP img-src 'self' data: 允许；自定义域名/独立域名下
+    // /static/* 未路由到应用会 404，data-URI 则任何域名都能显示）；其余 /static/* 走网关前缀兜底。
+    const ENGINE_DS = {
+      'bing.svg': 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNSIgZmlsbD0iIzAwODM3MyIvPgogIDxwYXRoIGQ9Ik0xNS41IDE1LjJhNSA1IDAgMSAwLTguOC0zLjJ2Ni41SDE0YTUgNSAwIDAgMCAxLjUtMy4zWiIgZmlsbD0iI2ZmZiIvPgogIDxwYXRoIGQ9Ik05LjIgMTJhNCA0IDAgMSAxIDQgNEg5LjJWNS41IiBzdHJva2U9IiMwMDgzNzMiIHN0cm9rZS13aWR0aD0iMi40IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+Cg==',
+      'Google.svg': 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTIzLjQ5IDEyLjI3YzAtLjc5LS4wNy0xLjU0LS4xOS0yLjI3SDEydjQuNTFoNi40N2MtLjI5IDEuNDgtMS4xNCAyLjczLTIuNCAzLjU4djNoMy44NmMyLjI2LTIuMDkgMy41Ni01LjE3IDMuNTYtOC44MnoiLz4KICA8cGF0aCBmaWxsPSIjMzRBODUzIiBkPSJNMTIgMjRjMy4yNCAwIDUuOTUtMS4wOCA3LjkzLTIuOTFsLTMuODYtM2MtMS4wOC43Mi0yLjQ1IDEuMTYtNC4wNyAxLjE2LTMuMTMgMC01Ljc4LTIuMTEtNi43My00Ljk2SDEuMjl2My4wOUMzLjI2IDIxLjMgNy4zMSAyNCAxMiAyNHoiLz4KICA8cGF0aCBmaWxsPSIjRkJCQzA1IiBkPSJNNS4yNyAxNC4yOWMtLjI1LS43Mi0uMzgtMS40OS0uMzgtMi4yOXMuMTQtMS41Ny4zOC0yLjI5VjYuNjJIMS4yOUExMS44NiAxMS44NiAwIDAgMCAwIDEyYzAgMS45NC40NyAzLjc2IDEuMjkgNS4zOGwzLjk4LTMuMDl6Ii8+CiAgPHBhdGggZmlsbD0iI0VBNDMzNSIgZD0iTTEyIDQuNzVjMS43NyAwIDMuMzUuNjEgNC42IDEuOGwzLjQzLTMuNDNDMTcuOTUgMS4xOSAxNS4yNCAwIDEyIDAgNy4zMSAwIDMuMjYgMi43IDEuMjkgNi42MmwzLjk4IDMuMDlDNi4yMiA2Ljg2IDguODcgNC43NSAxMiA0Ljc1eiIvPgo8L3N2Zz4K',
+      'bilibili.svg': 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHBhdGggZD0iTTkuNCAyLjYgNy4zIDQuN00xNC42IDIuNmwyLjEgMi4xIiBzdHJva2U9IiNmYjcyOTkiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cmVjdCB4PSIzIiB5PSI2IiB3aWR0aD0iMTgiIGhlaWdodD0iMTMuNSIgcng9IjMiIGZpbGw9IiNmYjcyOTkiLz4KICA8cmVjdCB4PSI2LjIiIHk9IjguNiIgd2lkdGg9IjExLjYiIGhlaWdodD0iOCIgcng9IjEuOCIgZmlsbD0iI2ZmZiIvPgogIDxwYXRoIGQ9Im0xMC42IDEwLjcgMy40IDEuOS0zLjQgMS45di0zLjh6IiBmaWxsPSIjZmI3Mjk5Ii8+Cjwvc3ZnPgo=',
+      'douyin.svg': 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNSIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjMTYxODIzIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8cGF0aCBkPSJNMTYuNSA1LjNjLS4yLTEuNS0xLjMtMi42LTIuNy0yLjh2MS45Yy42LjIgMSAuNiAxLjIgMS4yLjEuMi4xLjQuMS42aC0xLjd2MTNoMS44di02LjJjMC0yLjMgMS4zLTMuMSAzLjMtMy4yVjguMWMtMS4yIDAtMS45LjQtMi41IDFWNS4zeiIgZmlsbD0iIzE2MTgyMyIvPgogIDxwYXRoIGQ9Ik0xNi40IDcuMXYyLjRNMTggOC4zdjAiIHN0cm9rZT0iI2ZlMmM1NSIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K'
+    };
+    function iconSrc(icon) {
+      if (!icon) return icon;
+      if (icon.indexOf('data:') === 0) return icon;
+      if (icon.indexOf('/static/') === 0) {
+        const name = icon.slice('/static/'.length);
+        if (ENGINE_DS[name]) return ENGINE_DS[name];
+        // 兜底：带网关前缀，避免根绝对路径在网关下 404
+        return CHANNEL_BASE + icon + '?v=8';
+      }
+      return icon;
+    }
+    // 根据配置同步搜索引擎列表与默认项
+    function applySearchEngines(cfg) {
+      if (cfg && Array.isArray(cfg.search_engines) && cfg.search_engines.length) {
+        searchEngines = cfg.search_engines;
+      } else if (!searchEngines.length) {
+        searchEngines = defaultEngines();
+      }
+      defaultEngineId = (cfg && cfg.search_engine && searchEngines.some(e => e.id === cfg.search_engine))
+        ? cfg.search_engine
+        : (searchEngines[0] ? searchEngines[0].id : 'bing');
+      // 本地持久化的引擎选择优先于服务端默认
+      const saved = localStorage.getItem('hook_search_engine');
+      currentEngineId = (saved && searchEngines.some(e => e.id === saved)) ? saved : defaultEngineId;
+    }
+
+    // 本地切换搜索引擎（图标选择器）：写入 localStorage 持久化
+    function selectEngine(id) {
+      if (!searchEngines.some(e => e.id === id)) return;
+      currentEngineId = id;
+      localStorage.setItem('hook_search_engine', id);
+      renderSearchIcon();
+    }
+
+    // 搜索框图标：显示当前搜索引擎图标
+    function renderSearchIcon() {
+      const el = $('searchBoxIcon');
+      const eng = currentEngine();
+      const icon = (eng && eng.icon) || '';
+      if (icon) {
+        el.innerHTML = '<img src="' + escapeHtml(iconSrc(icon)) + '" alt="">';
+      } else {
+        el.textContent = '🔍';
+      }
+    }
+
+    // 点击搜索框图标：展开/收起搜索引擎选择列表
+    function toggleEnginePicker(e) {
+      if (e) e.stopPropagation();
+      const box = $('enginePicker');
+      if (box.classList.contains('hidden')) {
+        renderEnginePicker();
+        box.classList.remove('hidden');
+      } else {
+        box.classList.add('hidden');
+      }
+    }
+
+    function renderEnginePicker() {
+      const box = $('enginePicker');
+      box.innerHTML = searchEngines.map(e =>
+        '<div class="s-item' + (e.id === currentEngineId ? ' active' : '') + '" data-id="' + escapeHtml(e.id) + '" onclick="pickEngine(this)">' +
+          '<span class="s-icon">' + (e.icon ? '<img src="' + escapeHtml(iconSrc(e.icon)) + '" alt="">' : escapeHtml((e.title || '?').charAt(0).toUpperCase())) + '</span>' +
+          '<span class="s-text">' + escapeHtml(e.title) + '</span>' +
+        '</div>'
+      ).join('');
+    }
+
+    function pickEngine(el) {
+      selectEngine(el.dataset.id);
+      $('enginePicker').classList.add('hidden');
+      showToast('已切换搜索引擎');
+    }
+    searchEngines = defaultEngines();
+
+    function $(id) { return document.getElementById(id); }
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function showToast(msg, type) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.className = 'toast show ' + (type || 'info');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    function showEmpty(html) {
+      $('emptyState').innerHTML = '<div>' + html + '</div>';
+      $('emptyState').classList.remove('hidden');
+    }
+
+    // ==================== 数据加载与渲染 ====================
+    // 卡片站点图标：从对应站点域名拉取 /favicon.ico，失败时回退到默认字母/符号
+    function hookIconFallback(img, fb) {
+      img.outerHTML = '<span class="def">' + fb + '</span>';
+    }
+    function cardIcon(fallback, host) {
+      if (!host) return '<span class="def">' + fallback + '</span>';
+      const h = String(host).replace(/^https?:\/\//i, '').split('/')[0].trim();
+      if (!h) return '<span class="def">' + fallback + '</span>';
+      return '<img src="https://' + escapeHtml(h) + '/favicon.ico" alt="" loading="lazy" onerror="hookIconFallback(this,\'' + fallback + '\')">';
+    }
+
+    // 访客侧访问延时：在浏览器（打开导航页的用户）端用 Image 加载站点 favicon 计时，
+    // 反映的是访客到站点的真实网络链路（DNS+TCP+TLS+HTTP），而非服务端到站点的延时。
+    function measureLatency(url, cb) {
+      if (!url) { cb(-1); return; }
+      const img = new Image();
+      const start = performance.now();
+      let done = false;
+      const finish = () => {
+        if (done) return; done = true;
+        cb(Math.max(0, Math.round(performance.now() - start)));
+      };
+      img.onload = finish;
+      img.onerror = finish; // 404/超时也经历了完整网络往返，照常计时
+      img.src = url;
+      setTimeout(() => { if (!done) { done = true; cb(-1); } }, 8000);
+    }
+    // 遍历已渲染的卡片，逐个测量并更新延时显示
+    function startLatencyMeasure() {
+      document.querySelectorAll('.nav-card[data-lat]').forEach(card => {
+        const el = card.querySelector('.lat');
+        measureLatency(card.dataset.lat, ms => {
+          if (el) el.textContent = ms >= 0 ? '延时 ' + ms + ' ms' : '延时 —';
+        });
+      });
+    }
+    // 卡片访问延时目标 URL：有域名用 https://域名/favicon.ico（访客直连域名）；
+    // 无域名（转发/通道/无域名代理）时回退到本服务同源图标，反映访客访问该服务的链路延时。
+    function latTarget(host, fallback) {
+      const h = String(host || '').replace(/^https?:\/\//i, '').split('/')[0].trim();
+      if (h) return 'https://' + h + '/favicon.ico';
+      return fallback || '';
+    }
+    // 卡片访问地址基准：本机预览（127.0.0.1/localhost）时替换为局域网 IP，供局域网其他设备访问
+    function shareBase() {
+      let h = location.hostname;
+      if ((h === '127.0.0.1' || h === 'localhost' || h === '::1') && pageCfg && pageCfg.local_ip) {
+        h = pageCfg.local_ip;
+      }
+      return location.protocol + '//' + h + (location.port ? ':' + location.port : '') + API_PREFIX;
+    }
+
+    // Webhook 通道卡片（可点击直达访问地址）
+    function cardHtml(ch) {
+      const title = ch.description || ch.channel_id;
+      const cls = ch.online ? '' : ' offline';
+      const status = ch.online
+        ? '<span class="dot on" title="可访问"></span>'
+        : '<span class="dot off" title="待上报"></span>';
+      const search = (title + ' ' + ch.channel_id + ' ' + (ch.custom_id || '')).toLowerCase();
+      const latUrl = latTarget(ch.custom_domain, CHANNEL_BASE + '/hook?v=' + Date.now());
+      const href = shareBase() + '/' + encodeURIComponent(ch.channel_id);
+      return '<div class="nav-card' + cls + '" data-kind="webhook" data-id="' + escapeHtml(ch.channel_id) + '"' +
+        ' data-title="' + escapeHtml(title) + '" data-search="' + escapeHtml(search) + '" data-online="' + (ch.online ? 1 : 0) + '"' +
+        ' data-lat="' + escapeHtml(latUrl) + '" data-href="' + escapeHtml(href) + '">' +
+        '<div class="card-icon">' + cardIcon(escapeHtml(title.charAt(0).toUpperCase()), ch.custom_domain) + '</div>' +
+        '<div class="card-info">' +
+          '<div class="card-title">' + escapeHtml(title) + '</div>' +
+          '<div class="card-meta">' + status + '<span class="id lat">延时 —</span></div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    // 转发规则卡片：有域名打开域名；否则走统一网关代理 /proxy/{名称}
+    function forwardCard(f) {
+      const title = f.description || f.key;
+      const status = f.running
+        ? '<span class="dot on" title="运行中"></span>'
+        : '<span class="dot off" title="已停止"></span>';
+      const search = (title + ' ' + f.key + ' ' + (f.protocol || '')).toLowerCase();
+      const latUrl = latTarget(f.domain, CHANNEL_BASE + '/hook?v=' + Date.now());
+      const href = f.domain
+        ? 'https://' + f.domain
+        : (f.name ? shareBase() + '/proxy/' + encodeURIComponent(f.name)
+          : (f.local_port ? 'http://' + ((pageCfg && pageCfg.local_ip) || location.hostname) + ':' + f.local_port : ''));
+      return '<div class="nav-card" data-kind="forward" data-id="' + escapeHtml(f.key) + '"' +
+        ' data-title="' + escapeHtml(title) + '" data-search="' + escapeHtml(search) + '"' +
+        ' data-lat="' + escapeHtml(latUrl) + '" data-href="' + escapeHtml(href) + '">' +
+        '<div class="card-icon">' + cardIcon('➜', f.domain) + '</div>' +
+        '<div class="card-info">' +
+          '<div class="card-title">' + escapeHtml(title) + '</div>' +
+          '<div class="card-meta">' + status + '<span class="id lat">延时 —</span></div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    // frpc 代理卡片：有自定义域名打开域名
+    function proxyCard(p) {
+      const title = p.name;
+      const status = p.status === 'running'
+        ? '<span class="dot on" title="运行中"></span>'
+        : (p.status === 'error'
+          ? '<span class="dot off" title="异常"></span>'
+          : '<span class="dot warn" title="连接中"></span>');
+      const search = (title + ' ' + (p.type || '') + ' ' + (p.custom_domains || '')).toLowerCase();
+      const host = (p.custom_domains || '').split(',')[0].trim();
+      const latUrl = latTarget(host, CHANNEL_BASE + '/hook?v=' + Date.now());
+      const href = host ? 'https://' + host : '';
+      return '<div class="nav-card' + (p.enabled ? '' : ' offline') + '" data-kind="proxy" data-id="' + escapeHtml(title) + '"' +
+        ' data-title="' + escapeHtml(title) + '" data-search="' + escapeHtml(search) + '"' +
+        ' data-lat="' + escapeHtml(latUrl) + '" data-href="' + escapeHtml(href) + '">' +
+        '<div class="card-icon">' + cardIcon('↗', host) + '</div>' +
+        '<div class="card-info">' +
+          '<div class="card-title">' + escapeHtml(title) + '</div>' +
+          '<div class="card-meta">' + status + '<span class="id lat">延时 —</span></div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function sectionHtml(name, cards, delay) {
+      return '<section class="group" style="animation-delay:' + delay + 's">' +
+        '<div class="group-header">' +
+          '<span class="name">' + escapeHtml(name) + '</span>' +
+        '</div>' +
+        '<div class="card-grid">' + cards + '</div>' +
+      '</section>';
+    }
+
+    function loadData() {
+      $('loading').classList.remove('hidden');
+      $('content').classList.add('hidden');
+      $('emptyState').classList.add('hidden');
+      fetch(CHANNEL_BASE + '/hook/api/data')
+        .then(r => r.json())
+        .then(d => {
+          const data = d && d.data ? d.data : (d || {});
+          const cfg = data.config || {};
+          pageCfg = cfg; // 供设置弹窗读取当前配置
+          // 应用导航页配置：标题 / 图标 / 搜索栏与统计条显隐 / 搜索引擎
+          if (cfg.title) {
+            document.title = cfg.title;
+            $('logoText').textContent = cfg.title;
+          }
+          if (cfg.icon) {
+            $('siteFavicon').href = CHANNEL_BASE + '/hook/icon?v=' + Date.now();
+            $('logoIcon').src = CHANNEL_BASE + '/hook/icon?v=' + Date.now();
+            $('logoIcon').classList.remove('hidden');
+          }
+          $('searchWrap').classList.toggle('hidden', cfg.show_search === false);
+          applySearchEngines(cfg);
+          const groups = data.groups || [];
+          channelCache = groups.flatMap(g => g.channels || []);
+          renderStats(data);
+          applyPageUI(); // 时钟 / 壁纸 / 页脚 / 布局 / 统计条
+          $('loading').classList.add('hidden');
+          let html = '';
+          // Webhook 通道（分组卡片）
+          if (cfg.show_webhook !== false) {
+            groups.forEach((g, gi) => {
+              const list = g.channels || [];
+              if (!list.length) return;
+              html += sectionHtml(g.name, list.map(cardHtml).join(''), gi * 0.05);
+            });
+          }
+          // 转发列表
+          if (cfg.show_forwards !== false) {
+            const fwd = data.forwards || [];
+            if (fwd.length) html += sectionHtml('转发列表', fwd.map(forwardCard).join(''), 0.1);
+          }
+          // 代理列表
+          if (cfg.show_proxies !== false) {
+            const prx = data.proxies || [];
+            if (prx.length) html += sectionHtml('代理列表', prx.map(proxyCard).join(''), 0.15);
+          }
+          if (!html) {
+            showEmpty('暂无展示内容');
+            return;
+          }
+          $('content').innerHTML = html;
+          $('content').classList.remove('hidden');
+          startLatencyMeasure(); // 渲染后从访客侧测量各卡片访问延时
+        })
+        .catch(e => {
+          $('loading').classList.add('hidden');
+          showEmpty('加载失败：' + escapeHtml(e.message));
+        });
+    }
+
+    // ==================== 搜索 ====================
+    function highlightText(text, kw) {
+      const esc = escapeHtml(text);
+      if (!kw) return esc;
+      const kwe = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      try {
+        return esc.replace(new RegExp('(' + kwe + ')', 'gi'), '<mark>$1</mark>');
+      } catch (e) { return esc; }
+    }
+
+    function getChannelById(id) {
+      return channelCache.find(c => c.channel_id === id) || null;
+    }
+
+    // 搜索过滤：按标题/ID 匹配，空分区自动隐藏，匹配文字高亮（覆盖通道/转发/代理卡片）
+    function onSearch(val) {
+      const kw = (val || '').trim().toLowerCase();
+      document.querySelectorAll('.nav-card').forEach(card => {
+        const searchText = card.dataset.search || '';
+        const hit = !kw || searchText.includes(kw);
+        card.classList.toggle('hidden-by-search', !hit);
+        const titleEl = card.querySelector('.card-title');
+        if (titleEl) {
+          const title = card.dataset.title || titleEl.textContent;
+          if (kw && hit) titleEl.innerHTML = highlightText(title, kw);
+          else titleEl.textContent = title;
+        }
+      });
+      document.querySelectorAll('.group').forEach(grp => {
+        if (grp.dataset.nosearch) return; // 服务在线统计不参与搜索过滤
+        const visible = grp.querySelector('.nav-card:not(.hidden-by-search)');
+        grp.style.display = visible ? '' : 'none';
+      });
+      const any = document.querySelector('.nav-card:not(.hidden-by-search)');
+      if (kw && !any) {
+        showEmpty('未找到与「' + escapeHtml(kw) + '」匹配的内容');
+      } else {
+        $('emptyState').classList.add('hidden');
+      }
+      showSuggestions(kw);
+    }
+
+    // 搜索建议：显示匹配通道
+    function showSuggestions(kw) {
+      const box = $('searchSuggest');
+      if (!kw) { box.classList.add('hidden'); return; }
+      const hits = channelCache.filter(c =>
+        (c.description || '').toLowerCase().includes(kw) || c.channel_id.toLowerCase().includes(kw)
+      ).slice(0, 6);
+      if (!hits.length) { box.classList.add('hidden'); return; }
+      box.innerHTML = hits.map(c =>
+        '<div class="s-item" data-id="' + escapeHtml(c.channel_id) + '" onclick="jumpToChannel(this)">' +
+          '<span class="s-icon">' + escapeHtml((c.description || c.channel_id).charAt(0).toUpperCase()) + '</span>' +
+          '<span class="s-text">' + highlightText(c.description || c.channel_id, kw) + '</span>' +
+          '<span class="s-id">' + escapeHtml(c.channel_id) + '</span>' +
+        '</div>'
+      ).join('');
+      box.classList.remove('hidden');
+    }
+
+    // 跳转到建议通道并定位卡片
+    function jumpToChannel(el) {
+      const id = el.dataset.id;
+      $('searchSuggest').classList.add('hidden');
+      const card = document.querySelector('.nav-card[data-id="' + CSS.escape(id) + '"]');
+      if (!card) return;
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.remove('flash');
+      void card.offsetWidth; // 重置动画
+      card.classList.add('flash');
+      setTimeout(() => card.classList.remove('flash'), 1600);
+      const ch = getChannelById(id);
+      if (ch) {
+        $('searchInput').value = ch.description || ch.channel_id;
+        onSearch($('searchInput').value);
+      }
+    }
+
+    // 回车：使用配置的搜索引擎进行网页搜索
+    function searchEnter() {
+      const q = $('searchInput').value.trim();
+      if (!q) return;
+      $('searchSuggest').classList.add('hidden');
+      const eng = currentEngine();
+      const base = (eng && eng.url) ? eng.url : 'https://www.bing.com/search?q=';
+      window.open(base + encodeURIComponent(q), '_blank');
+    }
+
+    // ==================== 管理登录 / 导航页设置（右上角入口） ====================
+    // 页面公开可看，登录校验管理密码（默认 TunHook）；登录后按钮变为设置，可修改导航页。
+    const USER_ICON = '<svg width="14" height="14" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44Z" stroke="#333" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 23C26.7614 23 29 20.7614 29 18C29 15.2386 26.7614 13 24 13C21.2386 13 19 15.2386 19 18C19 20.7614 21.2386 23 24 23Z" fill="none" stroke="#333" stroke-width="4" stroke-linejoin="round"/><path d="M10.022 38.332C10.3657 33.1206 14.7016 29 20 29H28C33.2914 29 37.6229 33.1097 37.9767 38.3113" stroke="#333" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const SETTINGS_ICON = '<svg width="14" height="14" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18.2838 43.1713C14.9327 42.1736 11.9498 40.3213 9.58787 37.867C10.469 36.8227 11 35.4734 11 34.0001C11 30.6864 8.31371 28.0001 5 28.0001C4.79955 28.0001 4.60139 28.01 4.40599 28.0292C4.13979 26.7277 4 25.3803 4 24.0001C4 21.9095 4.32077 19.8938 4.91579 17.9995C4.94381 17.9999 4.97188 18.0001 5 18.0001C8.31371 18.0001 11 15.3138 11 12.0001C11 11.0488 10.7786 10.1493 10.3846 9.35011C12.6975 7.1995 15.5205 5.59002 18.6521 4.72314C19.6444 6.66819 21.6667 8.00013 24 8.00013C26.3333 8.00013 28.3556 6.66819 29.3479 4.72314C32.4795 5.59002 35.3025 7.1995 37.6154 9.35011C37.2214 10.1493 37 11.0488 37 12.0001C37 15.3138 39.6863 18.0001 43 18.0001C43.0281 18.0001 43.0562 17.9999 43.0842 17.9995C43.6792 19.8938 44 21.9095 44 24.0001C44 25.3803 43.8602 26.7277 43.594 28.0292C43.3986 28.01 43.2005 28.0001 43 28.0001C39.6863 28.0001 37 30.6864 37 34.0001C37 35.4734 37.531 36.8227 38.4121 37.867C36.0502 40.3213 33.0673 42.1736 29.7162 43.1713C28.9428 40.752 26.676 39.0001 24 39.0001C21.324 39.0001 19.0572 40.752 18.2838 43.1713Z" fill="none" stroke="#333" stroke-width="4" stroke-linejoin="round"/><path d="M24 31C27.866 31 31 27.866 31 24C31 20.134 27.866 17 24 17C20.134 17 17 20.134 17 24C17 27.866 20.134 31 24 31Z" fill="none" stroke="#333" stroke-width="4" stroke-linejoin="round"/></svg>';
+    let hookAuth = sessionStorage.getItem('hook_auth') === '1';
+    let pageCfg = {}; // 当前导航页配置（/hook/api/data 返回），设置弹窗用
+
+    function renderAuthBtn() {
+      const btn = $('loginBtn');
+      if (hookAuth) {
+        btn.innerHTML = SETTINGS_ICON;
+        btn.classList.add('logged-in');
+        btn.title = '导航页设置';
+      } else {
+        btn.innerHTML = USER_ICON;
+        btn.classList.remove('logged-in');
+        btn.title = '管理登录';
+      }
+    }
+
+    function loginBtnClick() {
+      if (hookAuth) {
+        openSettings();
+      } else {
+        openLogin();
+      }
+    }
+
+    function logout() {
+      closeSettings();
+      closeLogin();
+      sessionStorage.removeItem('hook_auth');
+      sessionStorage.removeItem('hook_admin_pass');
+      hookAuth = false;
+      renderAuthBtn();
+      showToast('已退出登录', 'info');
+    }
+
+    function openLogin() {
+      $('loginPassword').value = '';
+      $('loginError').textContent = '';
+      $('loginModal').classList.add('show');
+      setTimeout(() => $('loginPassword').focus(), 50);
+    }
+
+    function closeLogin() {
+      $('loginModal').classList.remove('show');
+    }
+
+    async function doLogin() {
+      const password = $('loginPassword').value;
+      const errEl = $('loginError');
+      if (!password) { errEl.textContent = '请输入管理密码'; return; }
+      try {
+        const res = await fetch(CHANNEL_BASE + '/hook/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          sessionStorage.setItem('hook_auth', '1');
+          sessionStorage.setItem('hook_admin_pass', password); // 供设置接口鉴权
+          hookAuth = true;
+          closeLogin();
+          renderAuthBtn();
+          showToast('登录成功');
+        } else {
+          errEl.textContent = data.error || '管理密码错误';
+        }
+      } catch (e) {
+        errEl.textContent = '网络错误，请稍后重试';
+      }
+    }
+
+    // ==================== 导航页设置弹窗（自定义 UI） ====================
+    let pendingWallData = ''; // 新上传的壁纸 dataURL（保存时提交）
+
+    function updateWallInputs() {
+      const src = (document.querySelector('input[name="wallSrc"]:checked') || {}).value || 'api';
+      $('wallApiRow').classList.toggle('hidden', src !== 'api');
+      $('wallUrlRow').classList.toggle('hidden', src !== 'url');
+      $('wallUploadRow').classList.toggle('hidden', src !== 'upload');
+    }
+
+    function openSettings() {
+      const c = pageCfg || {};
+      $('setClockEnabled').checked = c.clock_enabled !== false;
+      $('setClockFormat').value = c.clock_format || '24h';
+      document.querySelectorAll('input[name="wallSrc"]').forEach(r => {
+        r.checked = (r.value === (c.wall_source || 'api'));
+      });
+      $('setWallApi').value = c.wall_api || '';
+      $('setWallUrl').value = c.wall_url || '';
+      $('setWallBlur').value = c.wall_blur != null ? c.wall_blur : 5;
+      $('wallBlurVal').textContent = $('setWallBlur').value;
+      $('setWallMaskOpacity').value = c.wall_mask_opacity != null ? c.wall_mask_opacity : 20;
+      $('wallMaskVal').textContent = $('setWallMaskOpacity').value;
+      $('setFooterText').value = c.footer_text || '';
+      $('setContentWidth').value = c.content_max_width != null ? c.content_max_width : 90;
+      $('contentWidthVal').textContent = $('setContentWidth').value + '%';
+      $('setSideMargin').value = c.side_margin != null ? c.side_margin : 24;
+      $('sideMarginVal').textContent = $('setSideMargin').value + 'px';
+      $('setTopMargin').value = c.top_margin != null ? c.top_margin : 16;
+      $('topMarginVal').textContent = $('setTopMargin').value + '%';
+      $('setBottomMargin').value = c.bottom_margin != null ? c.bottom_margin : 0;
+      $('bottomMarginVal').textContent = $('setBottomMargin').value + '%';
+      $('setShowStats').checked = c.show_stats !== false;
+      $('settingsError').textContent = '';
+      pendingWallData = '';
+      $('setWallFile').value = '';
+      $('setSiteTitle').value = c.title || '通道导航';
+      updateLogoPreview();
+      updateWallInputs();
+      renderEngineList();
+      $('settingsModal').classList.add('show');
+    }
+
+    function closeSettings() {
+      $('settingsModal').classList.remove('show');
+    }
+
+    // 设置弹窗侧边栏：切换分组（时钟/壁纸/页脚/内容布局/统计条）
+    function switchSettingsTab(id) {
+      document.querySelectorAll('.settings-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === id));
+      document.querySelectorAll('.settings-section').forEach(s => s.classList.toggle('active', s.id === id));
+    }
+
+    function bindRangeVal(rangeId, valId, suffix) {
+      $(rangeId).addEventListener('input', () => { $(valId).textContent = $(rangeId).value + suffix; });
+    }
+
+    // 收集表单当前值为设置负载
+    function collectUIPayload() {
+      return {
+        title: $('setSiteTitle').value.trim() || '通道导航',
+        clock_enabled: $('setClockEnabled').checked,
+        clock_format: $('setClockFormat').value,
+        wall_source: (document.querySelector('input[name="wallSrc"]:checked') || {}).value || 'api',
+        wall_api: $('setWallApi').value.trim(),
+        wall_url: $('setWallUrl').value.trim(),
+        wall_blur: +$('setWallBlur').value,
+        wall_mask_opacity: +$('setWallMaskOpacity').value,
+        footer_text: $('setFooterText').value.trim(),
+        content_max_width: +$('setContentWidth').value,
+        side_margin: +$('setSideMargin').value,
+        top_margin: +$('setTopMargin').value,
+        bottom_margin: +$('setBottomMargin').value,
+        show_stats: $('setShowStats').checked,
+        search_engine: defaultEngineId,
+        search_engines: searchEngines
+      };
+    }
+
+    // 实时预览：把表单当前值立即应用到页面（不等待保存）
+    function livePreview() {
+      const payload = collectUIPayload();
+      if (pendingWallData) payload.wall_upload = pendingWallData;
+      applyPageUI(Object.assign({}, pageCfg, payload));
+    }
+
+    let saveTimer = null;
+    let saveToastTimer = null;
+
+    // 防抖自动保存：连续调整合并为一次请求
+    function scheduleSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => saveNavSettings(), 400);
+    }
+
+    async function saveNavSettings() {
+      const errEl = $('settingsError');
+      errEl.textContent = '';
+      const payload = collectUIPayload();
+      if (pendingWallData) payload.wall_upload = pendingWallData;
+      try {
+        const res = await fetch(CHANNEL_BASE + '/hook/api/settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + (sessionStorage.getItem('hook_admin_pass') || '')
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          pendingWallData = '';
+          $('setWallFile').value = '';
+          // 本地同步已保存配置，避免全量 loadData 重渲染导致闪烁
+          pageCfg = Object.assign({}, pageCfg, payload);
+          clearTimeout(saveToastTimer);
+          saveToastTimer = setTimeout(() => showToast('导航页设置已保存'), 500);
+          applyPageUI();
+        } else {
+          errEl.textContent = data.error || '保存失败';
+        }
+      } catch (e) {
+        errEl.textContent = '网络错误，请稍后重试';
+      }
+    }
+
+    // ==================== 搜索引擎编辑 ====================
+    let engineEditingId = null;
+
+    function renderEngineList() {
+      const list = $('engineList');
+      list.innerHTML = searchEngines.map(e =>
+        '<div class="engine-item' + (e.id === currentEngineId ? ' default' : '') + '">' +
+          (e.icon ? '<img class="e-icon" src="' + escapeHtml(iconSrc(e.icon)) + '" alt="" onerror="this.remove()">' : '') +
+          '<span class="e-title">' + escapeHtml(e.title) + '</span>' +
+          '<span class="e-url" title="' + escapeHtml(e.url) + '">' + escapeHtml(e.url) + '</span>' +
+          '<span class="e-actions">' +
+            (e.id === currentEngineId
+              ? '<span style="font-size:11px;color:var(--green-soft)">默认</span>'
+              : '<button class="btn btn-ghost" onclick="setDefaultEngine(\'' + escapeHtml(e.id) + '\')">设为默认</button>') +
+            '<button class="btn btn-ghost" onclick="editEngine(\'' + escapeHtml(e.id) + '\')">编辑</button>' +
+            (searchEngines.length > 1 ? '<button class="btn btn-ghost" onclick="removeEngine(\'' + escapeHtml(e.id) + '\')">删除</button>' : '') +
+          '</span>' +
+        '</div>'
+      ).join('');
+    }
+
+    function addSearchEngine() {
+      engineEditingId = null;
+      $('engineModalTitle').textContent = '添加搜索引擎';
+      $('engineTitle').value = '';
+      $('engineIcon').value = '';
+      $('engineUrl').value = '';
+      $('engineError').textContent = '';
+      $('engineModal').classList.add('show');
+      setTimeout(() => $('engineTitle').focus(), 50);
+    }
+
+    function editEngine(id) {
+      const e = searchEngines.find(x => x.id === id);
+      if (!e) return;
+      engineEditingId = id;
+      $('engineModalTitle').textContent = '编辑搜索引擎';
+      $('engineTitle').value = e.title || '';
+      $('engineIcon').value = e.icon || '';
+      $('engineUrl').value = e.url || '';
+      $('engineError').textContent = '';
+      $('engineModal').classList.add('show');
+      setTimeout(() => $('engineTitle').focus(), 50);
+    }
+
+    function closeEngineModal() {
+      $('engineModal').classList.remove('show');
+    }
+
+    function saveEngine() {
+      const title = $('engineTitle').value.trim();
+      const icon = $('engineIcon').value.trim();
+      const url = $('engineUrl').value.trim();
+      const errEl = $('engineError');
+      if (!title) { errEl.textContent = '请输入标题'; return; }
+      if (!/^https?:\/\//i.test(url)) { errEl.textContent = 'URL 需以 http:// 或 https:// 开头'; return; }
+      if (engineEditingId) {
+        const e = searchEngines.find(x => x.id === engineEditingId);
+        if (e) { e.title = title; e.url = url; e.icon = icon; }
+      } else {
+        const id = 'se' + Date.now().toString(36);
+        searchEngines.push({ id, title, url, icon });
+      }
+      closeEngineModal();
+      renderEngineList();
+      scheduleSave(); // 自动保存
+    }
+
+    function removeEngine(id) {
+      if (searchEngines.length <= 1) { showToast('至少保留一个搜索引擎', 'info'); return; }
+      const idx = searchEngines.findIndex(x => x.id === id);
+      if (idx < 0) return;
+      searchEngines.splice(idx, 1);
+      if (currentEngineId === id) currentEngineId = searchEngines[0].id;
+      renderEngineList();
+      scheduleSave();
+    }
+
+    function setDefaultEngine(id) {
+      if (!searchEngines.some(x => x.id === id)) return;
+      defaultEngineId = id;
+      currentEngineId = id;
+      localStorage.setItem('hook_search_engine', id); // 同步本地选择
+      renderEngineList();
+      renderSearchIcon();
+      scheduleSave();
+    }
+
+    // ==================== LOGO（网页设置） ====================
+    function updateLogoPreview() {
+      const icon = (pageCfg && pageCfg.icon) || '';
+      const preview = $('setLogoPreview');
+      const rmBtn = $('setLogoRemove');
+      if (icon) {
+        preview.src = CHANNEL_BASE + '/hook/icon?v=' + Date.now();
+        preview.classList.remove('hidden');
+        rmBtn.classList.remove('hidden');
+      } else {
+        preview.src = '';
+        preview.classList.add('hidden');
+        rmBtn.classList.add('hidden');
+      }
+    }
+
+    async function removeLogo() {
+      try {
+        const res = await fetch(CHANNEL_BASE + '/hook/icon', {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + (sessionStorage.getItem('hook_admin_pass') || '') }
+        });
+        if (!res.ok) { const d = await res.json().catch(() => null); throw new Error((d && d.error) || '移除失败'); }
+        showToast('LOGO 已移除');
+        loadData();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+
+    // ==================== 应用自定义 UI（时钟 / 壁纸 / 页脚 / 布局 / 统计条 / 搜索引擎） ====================
+    // c 可选：传入则用该配置应用（实时预览），缺省使用 pageCfg
+    function applyPageUI(c) {
+      c = c || pageCfg || {};
+      // 搜索引擎
+      applySearchEngines(c);
+      renderSearchIcon();
+      // 网页表头（标题）
+      const title = (c.title || '').trim() || '通道导航';
+      document.title = title;
+      $('logoText').textContent = title;
+      // 时钟
+      const showClock = c.clock_enabled !== false;
+      $('clockWrap').classList.toggle('hidden', !showClock);
+      $('logoSep').classList.toggle('hidden', !showClock);
+      updateClock();
+      // 页脚
+      const ft = (c.footer_text || '').trim();
+      $('pageFooter').textContent = ft || '@ 2026 TunHook';
+      // 内容布局
+      const main = document.querySelector('main.container');
+      main.style.maxWidth = (c.content_max_width != null ? c.content_max_width : 90) + 'vw';
+      main.style.paddingLeft = (c.side_margin != null ? c.side_margin : 24) + 'px';
+      main.style.paddingRight = (c.side_margin != null ? c.side_margin : 24) + 'px';
+      $('logoRow').style.paddingTop = (c.top_margin != null ? c.top_margin : 16) + 'vh';
+      main.style.paddingBottom = (c.bottom_margin != null ? c.bottom_margin : 0) + 'vh';
+      // 壁纸
+      applyWallpaper(c);
+      // 统计条
+      $('statsBar').classList.toggle('hidden', c.show_stats === false);
+    }
+
+    function updateClock() {
+      const f = pageCfg.clock_format || '24h';
+      const d = new Date();
+      const p = n => String(n).padStart(2, '0');
+      let time;
+      if (f === '24h-ns') {
+        time = p(d.getHours()) + ':' + p(d.getMinutes());
+      } else if (f === '12h') {
+        let h = d.getHours() % 12; if (h === 0) h = 12;
+        time = p(h) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) + ' ' + (d.getHours() < 12 ? 'AM' : 'PM');
+      } else {
+        time = p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+      }
+      $('clockTime').textContent = time;
+      const wd = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
+      $('clockDate').textContent = (d.getMonth() + 1) + '-' + d.getDate() + ' ' + '星期' + wd;
+    }
+
+    let wallBgUrl = '';    // 当前生效壁纸地址（渲染到背景）
+
+    // 把远程壁纸抓取为 dataURL（上限 5MB），失败或超限抛错由调用方回退
+    function fetchImageAsDataURL(url) {
+      return fetch(url, { mode: 'cors' })
+        .then(res => { if (!res.ok) throw new Error('bad status'); return res.blob(); })
+        .then(blob => {
+          if (blob.size > 5 * 1024 * 1024) throw new Error('too big');
+          return new Promise((resolve, reject) => {
+            const rd = new FileReader();
+            rd.onload = () => resolve(rd.result);
+            rd.onerror = () => reject(rd.error);
+            rd.readAsDataURL(blob);
+          });
+        });
+    }
+
+    // 每日换新记录：localStorage 记最近一次换新日期；跨天后需要重新抓取换新
+    const WALL_ROLL_KEY = 'hook_wall_last_roll';
+    function localDateStr() {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function wallRollDue() { return localStorage.getItem(WALL_ROLL_KEY) !== localDateStr(); }
+
+    // 静默把换新后的壁纸 dataURL 保存到后端并记下换新日期：
+    // 保存后任意浏览器（含换设备）打开 /hook 都是同一张本地 dataURL，不再依赖外网图床
+    async function persistWallData(dataURL) {
+      try {
+        const res = await fetch(CHANNEL_BASE + '/hook/api/settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + (sessionStorage.getItem('hook_admin_pass') || '')
+          },
+          body: JSON.stringify({ wall_upload: dataURL })
+        });
+        if (res.ok) {
+          pageCfg = Object.assign({}, pageCfg, { wall_upload: dataURL });
+          localStorage.setItem(WALL_ROLL_KEY, localDateStr());
+        }
+      } catch (e) { /* 静默失败：仅本次会话生效，不阻塞 */ }
+    }
+
+    // 解析壁纸最终渲染地址：
+    //  - 本地上传：直接用配置里的 dataURL（纯本地）
+    //  - API/链接：优先用后端已固化的 dataURL；跨天则静默抓新图固化换新，
+    //    抓取期间先用现有 dataURL 或原始链接兜底，成功后更新背景
+    function getWallURL(c) {
+      const src = c.wall_source || 'api';
+      if (src === 'upload') return c.wall_upload || '';
+      const raw = (src === 'api' ? (c.wall_api || '') : (c.wall_url || ''));
+      if (!raw) return '';
+      if (c.wall_upload && !wallRollDue()) return c.wall_upload;
+      // 跨天（或尚无固化图）→ 抓取新图固化换新
+      fetchImageAsDataURL(raw)
+        .then(dataURL => {
+          persistWallData(dataURL);
+          if (dataURL && dataURL !== wallBgUrl) revealWall(dataURL);
+        })
+        .catch(() => {});
+      return c.wall_upload || raw;
+    }
+
+    // 显示壁纸：有壁纸时直接作为背景加载（瞬时切换，无浅色占位、无淡入淡出）
+    function revealWall(resolved) {
+      const bg = $('wallBg');
+      bg.style.transition = 'none'; // 禁用 opacity 过渡，避免淡入
+      bg.style.backgroundImage = "url('" + String(resolved).replace(/'/g, '%27') + "')";
+      bg.style.opacity = '1';
+      bg.style.transition = ''; // 恢复 CSS 默认过渡
+      // 仅释放不再被缓存复用的 blob URL，避免破坏缓存快速显示
+      if (wallBgUrl && wallBgUrl.indexOf('blob:') === 0 && !Object.values(wallBlobCache).includes(wallBgUrl)) {
+        URL.revokeObjectURL(wallBgUrl);
+      }
+      wallBgUrl = resolved;
+    }
+
+    function applyWallpaper(c) {
+      c = c || pageCfg || {};
+      const layer = $('wallLayer');
+      const bg = $('wallBg');
+      bg.style.filter = 'blur(' + (c.wall_blur != null ? c.wall_blur : 5) + 'px)';
+      // 遮罩默认开启，透明度可调
+      $('wallMask').style.opacity = ((c.wall_mask_opacity != null ? c.wall_mask_opacity : 20) / 100);
+      const resolved = getWallURL(c); // 本地/接口/链接：优先用固化 dataURL；跨天异步换新
+      if (resolved) {
+        layer.classList.remove('hidden');
+        if (resolved !== wallBgUrl) revealWall(resolved);
+      } else {
+        bg.style.backgroundImage = '';
+        bg.style.opacity = '0';
+        layer.classList.add('hidden');
+      }
+    }
+
+    function renderStats(data) {
+      const groups = data.groups || [];
+      const chs = groups.flatMap(g => g.channels || []);
+      $('statTotal').textContent = chs.length;
+      $('statOnline').textContent = chs.filter(c => c.online).length;
+      $('statForwards').textContent = (data.forwards || []).length;
+      $('statProxies').textContent = (data.proxies || []).length;
+    }
+
+    // ==================== 事件绑定 ====================
+    $('searchInput').addEventListener('input', () => onSearch($('searchInput').value));
+    $('searchInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); searchEnter(); }
+      if (e.key === 'Escape') $('searchSuggest').classList.add('hidden');
+    });
+
+    // 卡片点击：有访问地址的卡片（通道/转发/代理）在新标签页打开对应站点
+    document.addEventListener('click', e => {
+      const item = e.target.closest('.nav-card');
+      if (!item) return;
+      if (item.dataset.kind === 'webhook' && item.dataset.online !== '1') {
+        showToast('该通道暂未上报公网地址，等待客户端连接', 'info');
+        return;
+      }
+      const href = item.dataset.href;
+      if (!href) {
+        showToast('该列表项无访问地址', 'info');
+        return;
+      }
+      window.open(href, '_blank');
+    });
+
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.search-wrap')) {
+        $('searchSuggest').classList.add('hidden');
+        $('enginePicker').classList.add('hidden');
+      }
+    });
+
+    // 登录/设置弹窗：回车提交 / Esc 关闭 / 点击遮罩关闭
+    $('loginPassword').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); doLogin(); }
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { closeLogin(); closeSettings(); closeEngineModal(); }
+    });
+    $('loginModal').addEventListener('click', e => {
+      if (e.target === $('loginModal')) closeLogin();
+    });
+    $('settingsModal').addEventListener('click', e => {
+      if (e.target === $('settingsModal')) closeSettings();
+    });
+    // 搜索引擎编辑弹窗：回车保存 / 点击遮罩关闭
+    $('engineTitle').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveEngine(); } });
+    $('engineUrl').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveEngine(); } });
+    $('engineModal').addEventListener('click', e => {
+      if (e.target === $('engineModal')) closeEngineModal();
+    });
+
+    // 设置表单：实时预览 + 防抖自动保存
+    document.querySelectorAll('input[name="wallSrc"]').forEach(r => {
+      r.addEventListener('change', () => { updateWallInputs(); livePreview(); scheduleSave(); });
+    });
+    $('setWallFile').addEventListener('change', () => {
+      const f = $('setWallFile').files && $('setWallFile').files[0];
+      if (!f) return;
+      if (f.size > 5 * 1024 * 1024) { showToast('壁纸图片不能超过 5MB', 'error'); return; }
+      const rd = new FileReader();
+      rd.onload = () => {
+        pendingWallData = rd.result;
+        livePreview();
+        scheduleSave();
+      };
+      rd.readAsDataURL(f);
+    });
+    // 滑杆：拖动实时预览，松开后自动保存
+    const liveRange = (id, valId, suffix) => {
+      bindRangeVal(id, valId, suffix);
+      $(id).addEventListener('input', livePreview);
+      $(id).addEventListener('change', scheduleSave);
+    };
+    liveRange('setWallBlur', 'wallBlurVal', '');
+    liveRange('setWallMaskOpacity', 'wallMaskVal', '');
+    liveRange('setContentWidth', 'contentWidthVal', '%');
+    liveRange('setSideMargin', 'sideMarginVal', 'px');
+    liveRange('setTopMargin', 'topMarginVal', '%');
+    liveRange('setBottomMargin', 'bottomMarginVal', '%');
+    // 文本框：输入实时预览，失焦后自动保存
+    ['setWallApi', 'setWallUrl', 'setFooterText', 'setSiteTitle'].forEach(id => {
+      $(id).addEventListener('input', livePreview);
+      $(id).addEventListener('change', scheduleSave);
+    });
+    // LOGO 上传（需登录，携带管理密码）
+    $('setLogoFile').addEventListener('change', async () => {
+      const f = $('setLogoFile').files && $('setLogoFile').files[0];
+      if (!f) return;
+      if (f.size > 2 * 1024 * 1024) { showToast('LOGO 不能超过 2MB', 'error'); return; }
+      const fd = new FormData();
+      fd.append('icon', f);
+      try {
+        const res = await fetch(CHANNEL_BASE + '/hook/icon', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + (sessionStorage.getItem('hook_admin_pass') || '') },
+          body: fd
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error((data && data.error) || '上传失败');
+        $('setLogoFile').value = '';
+        showToast('LOGO 已更新');
+        loadData();
+        updateLogoPreview();
+      } catch (e) {
+        $('setLogoFile').value = '';
+        showToast(e.message, 'error');
+      }
+    });
+    // 开关 / 下拉：变更即预览并保存
+    ['setClockEnabled', 'setShowStats'].forEach(id => {
+      $(id).addEventListener('change', () => { livePreview(); scheduleSave(); });
+    });
+    $('setClockFormat').addEventListener('change', () => { livePreview(); scheduleSave(); });
+    setInterval(updateClock, 1000);
+
+    renderAuthBtn();
+    loadData();
+  </script>
+</body>
+</html>

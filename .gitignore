@@ -1,0 +1,27 @@
+# 运行数据与构建产物
+/dev-data/
+/编译产物/
+
+# Go 运行时数据（数据库 / 归属地缓存 / frpc / 日志）
+/src/db/
+/src/geoloc/cache/
+/src/frp/
+/src/log/
+/TunHook/app/tunhook
+/TunHook/*.fpk
+
+# frp 运行时数据（第三方 frp 离线包 tar.gz 保留）
+/TunHook/app/frp/frpc
+/TunHook/app/frp/frpc.json
+/TunHook/app/frp/frpc.toml
+/TunHook/app/frp/frpc.log
+/TunHook/app/frp/certs/
+/TunHook/app/frp/packages/
+
+# 前端依赖与构建产物（构建后由 go:embed 嵌入）
+/src/web/ui/node_modules/
+/src/web/static/
+
+# 本地演示/临时文件
+/.trae-html-share-packages/
+*.log

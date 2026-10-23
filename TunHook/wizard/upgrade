@@ -1,0 +1,11 @@
+[
+    {
+        "stepTitle": "${upgrade.stepTitle}",
+        "items": [
+            {
+                "type": "tips",
+                "helpText": "${upgrade.helpText}"
+            }
+        ]
+    }
+]
