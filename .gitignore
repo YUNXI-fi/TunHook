@@ -23,5 +23,6 @@
 /src/web/static/
 
 # 本地演示/临时文件
+/docs/
 /.trae-html-share-packages/
 *.log
